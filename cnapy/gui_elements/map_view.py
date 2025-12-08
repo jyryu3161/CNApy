@@ -389,7 +389,7 @@ class CLineEdit(QLineEdit):
         super().focusOutEvent(event)
         self.parent.setSelected(False)
         if self.isModified() and self.parent.map.appdata.auto_fba:
-            self.parent.map.central_widget.parent.fba()
+            self.parent.map.central_widget.parent.run_auto_analysis()
         self.parent.update()
 
     def focusInEvent(self, event):
@@ -535,7 +535,7 @@ class ReactionBox(QGraphicsItem):
 
     def handle_editing_finished(self):
         if self.item.isModified() and self.map.appdata.auto_fba:
-            self.map.central_widget.parent.fba()
+            self.map.central_widget.parent.run_auto_analysis()
 
     #@Slot() # using the decorator gives a connection error?
     def value_changed(self):

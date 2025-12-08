@@ -5,7 +5,7 @@ from pathlib import Path
 from qtpy.QtGui import QDoubleValidator, QIntValidator, QPalette
 from qtpy.QtWidgets import (QColorDialog, QDialog, QFileDialog,
                             QHBoxLayout, QLabel, QLineEdit, QMessageBox, QPushButton,
-                            QVBoxLayout, QCheckBox)
+                            QVBoxLayout, QCheckBox, QComboBox)
 from cnapy.appdata import AppData
 
 
@@ -140,6 +140,14 @@ class ConfigDialog(QDialog):
         h.addWidget(self.results_cache_directory)
         self.layout.addItem(h)
 
+        h_method = QHBoxLayout()
+        h_method.addWidget(QLabel("Auto Analysis Method:"))
+        self.analysis_method = QComboBox()
+        self.analysis_method.addItems(["fba", "moma"])
+        self.analysis_method.setCurrentText(self.appdata.auto_analysis_method)
+        h_method.addWidget(self.analysis_method)
+        self.layout.addItem(h_method)
+
         self.dark_mode = QCheckBox("Dark mode (restart to fully apply changes)")
         self.dark_mode.setChecked(self.appdata.is_in_dark_mode)
         self.layout.addWidget(self.dark_mode)
@@ -272,6 +280,8 @@ class ConfigDialog(QDialog):
         if not self.appdata.results_cache_dir.exists():
             self.use_results_cache.setChecked(False)
         self.appdata.use_results_cache = self.use_results_cache.isChecked()
+
+        self.appdata.auto_analysis_method = self.analysis_method.currentText()
 
         self.appdata.is_in_dark_mode = self.dark_mode.isChecked()
 

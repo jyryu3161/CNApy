@@ -88,6 +88,7 @@ class AppData(QObject):
         self.scenario_future = []
         self.recent_cna_files = []
         self.auto_fba = False
+        self.auto_analysis_method = "moma" # "fba" or "moma"
         self.is_in_dark_mode = False
 
     def scen_values_set(self, reaction: str, values: Tuple[float, float]):
@@ -187,6 +188,7 @@ class AppData(QObject):
         parser.set('cnapy-config', 'use_results_cache', str(self.use_results_cache))
         parser.set('cnapy-config', 'results_cache_directory', str(self.results_cache_dir))
         parser.set('cnapy-config', 'recent_cna_files', str(self.recent_cna_files))
+        parser.set('cnapy-config', 'auto_analysis_method', self.auto_analysis_method)
         parser.set('cnapy-config', 'is_in_dark_mode', str(self.is_in_dark_mode))
         parser.write(fp)
         fp.close()

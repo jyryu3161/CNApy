@@ -213,7 +213,7 @@ class CentralWidget(QWidget):
         self.appdata.project.update_reaction_id_lists()
 
         if self.appdata.auto_fba:
-            self.parent.fba()
+            self.parent.run_auto_analysis()
 
     @Slot(cobra.Metabolite, object, str)
     def handle_changed_metabolite(self, metabolite: cobra.Metabolite, affected_reactions, previous_id: str):
@@ -236,12 +236,12 @@ class CentralWidget(QWidget):
     def handle_changed_global_objective(self):
         self.parent.unsaved_changes()
         if self.appdata.auto_fba and not self.appdata.project.scen_values.use_scenario_objective:
-            self.parent.fba()
+            self.parent.run_auto_analysis()
 
     @Slot()
     def handle_changed_objective_setup(self):
         if self.appdata.auto_fba:
-            self.parent.fba()
+            self.parent.run_auto_analysis()
 
     def shutdown_kernel(self):
         self.console.kernel_client.stop_channels()

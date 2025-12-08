@@ -369,7 +369,7 @@ class ReactionList(QWidget):
                 self.central_widget.update_reaction_value(item.reaction.id, scen_text,
                     update_reaction_list=False) # not necessary to update the whole reaction list
                 if self.appdata.auto_fba:
-                    self.central_widget.parent.fba() # makes an update
+                    self.central_widget.parent.run_auto_analysis() # makes an update
                 else:
                     self.update_item(item)
                     self.central_widget.update_maps()
@@ -759,7 +759,7 @@ class ReactionMask(QWidget):
 
     def auto_fba(self):
         if self.fba_relevant_change and self.parent.appdata.auto_fba:
-            self.parent.central_widget.parent.fba()
+            self.parent.central_widget.parent.run_auto_analysis()
         self.fba_relevant_change = False
 
     def check_in_identifiers_org(self):

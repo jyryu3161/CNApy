@@ -210,7 +210,7 @@ class CnapyBridge(QObject):
                     self.last_accepted_value = value
                     self.reactionValueChanged.emit(reac_id, value)
                     if self.appdata.auto_fba:
-                        self.central_widget.parent.fba()
+                        self.central_widget.parent.run_auto_analysis()
             else:
                 self.escher_map.page().runJavaScript('document.getElementById("reaction-box-input").setAttribute("style", "color: red")')
         else:

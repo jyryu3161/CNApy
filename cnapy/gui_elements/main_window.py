@@ -1673,9 +1673,19 @@ class MainWindow(QMainWindow):
     def auto_fba(self):
         if self.auto_fba_action.isChecked():
             self.appdata.auto_fba = True
-            self.fba()
+            self.run_auto_analysis()
         else:
             self.appdata.auto_fba = False
+
+    def run_auto_analysis(self):
+        if self.appdata.auto_analysis_method == "moma":
+            if self.appdata.project.solution is None:
+                # Fallback to FBA if no reference solution exists
+                self.fba()
+            else:
+                self.perform_linear_moma(silent=True)
+        else:
+            self.fba()
 
     def fba(self):
         with self.appdata.project.cobra_py_model as model:
@@ -1683,10 +1693,11 @@ class MainWindow(QMainWindow):
             self.appdata.project.solution = model_optimization_with_exceptions(model)
         self.process_fba_solution()
 
-    def perform_linear_moma(self):
+    def perform_linear_moma(self, silent=False):
         if self.appdata.project.solution is None:
-            QMessageBox.warning(self, "No reference solution",
-                                "No reference solution found. Please run FBA on the reference state first.")
+            if not silent:
+                QMessageBox.warning(self, "No reference solution",
+                                    "No reference solution found. Please run FBA on the reference state first.")
             return
 
         with self.appdata.project.cobra_py_model as model:

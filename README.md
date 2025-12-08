@@ -1,4 +1,4 @@
-# CNApy: An integrated environment for metabolic modeling
+# CNApy: 대사 모델링을 위한 통합 환경
 
 [![Latest stable release](https://flat.badgen.net/github/release/cnapy-org/cnapy/stable)](https://github.com/cnapy-org/CNApy/releases/latest)
 [![Last commit](https://flat.badgen.net/github/last-commit/cnapy-org/cnapy)](https://github.com/cnapy-org/CNApy/commits/master)
@@ -7,107 +7,118 @@
 
 ![CNApy screenshot](screenshot.png)
 
-## Introduction
+## 소개
 
-CNApy [[Paper]](https://doi.org/10.1093/bioinformatics/btab828) is a Python-based graphical user interface for a) many common methods of Constraint-Based Reconstruction and Analysis (COBRA) with stoichiometric metabolic models, b) the visualization of COBRA calculation results as *interactive and editable* metabolic maps (including Escher maps [[GitHub]](https://escher.github.io/#/)[[Paper]](<https://doi.org/10.1371/journal.pcbi.1004321>)) and c) the creation and editing of metabolic models, including its reactions, metabolites and genes. For model loading and export, CNApy supports the widely used SBML standard format [[Site]](https://sbml.org/)[[Paper]](https://www.embopress.org/doi/abs/10.15252/msb.20199110).
+안녕하세요! CNApy [[논문]](https://doi.org/10.1093/bioinformatics/btab828)에 오신 것을 환영합니다. CNApy는 파이썬 기반의 그래픽 사용자 인터페이스(GUI)로, 대사 모델링을 쉽고 편리하게 수행할 수 있도록 도와주는 도구입니다.
 
-Supported COBRA methods (partly provided by cobrapy [[GitHub]](https://github.com/opencobra/cobrapy)[[Paper]](https://doi.org/10.1186/1752-0509-7-74)) include:
+CNApy를 사용하면 다음과 같은 작업들을 할 수 있어요:
+*   **다양한 COBRA 분석**: 화학양론적 대사 모델을 이용한 제약 조건 기반 재구성 및 분석(COBRA)의 여러 일반적인 방법들을 수행할 수 있습니다.
+*   **인터랙티브한 시각화**: COBRA 계산 결과를 *인터랙티브하고 편집 가능한* 대사 지도로 시각화할 수 있습니다. Escher 지도 [[GitHub]](https://escher.github.io/#/)[[논문]](<https://doi.org/10.1371/journal.pcbi.1004321>)도 지원해요!
+*   **모델 생성 및 편집**: 반응, 대사산물, 유전자 등을 포함한 대사 모델을 직접 만들고 수정할 수 있습니다.
 
-- Flux Balance Analysis (FBA) [[Review]](https://doi.org/10.1038/nbt.1614)
-- Flux Variability Analysis (FVA) [[Paper]](https://doi.org/10.1016/j.ymben.2003.09.002)
-- Yield optimization (based on linear-fractional programming) [[Paper]](https://doi.org/10.1016/j.ymben.2018.02.001)
-- Phase plane analyses (can include flux and/or yield optimizations)
-- Making measured *in vivo* flux scenarios stoichiometrically feasible, optionally also by altering a biomass reaction [[Paper]](https://academic.oup.com/bioinformatics/article/39/10/btad600/7284109)
-- Elementary Flux Modes (EFM) [[Review]](https://analyticalsciencejournals.onlinelibrary.wiley.com/doi/full/10.1002/biot.201200269)
-- Thermodynamic methods based on OptMDFpathway [[Paper]](https://doi.org/10.1371/journal.pcbi.1006492)
-- Many advanced strain design algorithms such as OptKnock [[Paper]](https://doi.org/10.1002/bit.10803), RobustKnock [[Paper]](https://doi.org/10.1093/bioinformatics/btp704), OptCouple [[Paper]](https://doi.org/10.1016/j.mec.2019.e00087) and advanced Minimal Cut Sets [[Paper]](https://doi.org/10.1371/journal.pcbi.1008110) through its StrainDesign [[GitHub]](https://github.com/klamt-lab/straindesign)[[Paper]](https://doi.org/10.1093/bioinformatics/btac632) integration
+모델을 불러오거나 내보낼 때는 널리 사용되는 SBML 표준 형식 [[사이트]](https://sbml.org/)[[논문]](https://www.embopress.org/doi/abs/10.15252/msb.20199110)을 지원합니다.
 
-**→ For information about how to install CNApy, see section [Installation Options](#installation-options)**
+지원하는 COBRA 방법들(일부는 cobrapy [[GitHub]](https://github.com/opencobra/cobrapy)[[논문]](https://doi.org/10.1186/1752-0509-7-74)에서 제공)은 다음과 같습니다:
 
-**→ For more details on CNApy's many features, see section [Documentation and Tutorials](#documentation-and-tutorials)**
+- **Flux Balance Analysis (FBA)** [[리뷰]](https://doi.org/10.1038/nbt.1614)
+- **Flux Variability Analysis (FVA)** [[논문]](https://doi.org/10.1016/j.ymben.2003.09.002)
+- **Yield optimization** (선형 분수 프로그래밍 기반) [[논문]](https://doi.org/10.1016/j.ymben.2018.02.001)
+- **Phase plane analyses** (플럭스 및/또는 수율 최적화 포함 가능)
+- **Flux Sampling**: 모델의 가능한 플럭스 분포를 샘플링하여 분석할 수 있습니다.
+- **Linear MOMA**: 기준 플럭스 분포와의 차이를 최소화하는 선형 MOMA 분석을 수행할 수 있습니다.
+- **실제 측정된 *in vivo* 플럭스 시나리오 적용**: 화학양론적으로 타당하게 만들며, 선택적으로 바이오매스 반응을 수정할 수도 있습니다 [[논문]](https://academic.oup.com/bioinformatics/article/39/10/btad600/7284109).
+- **Elementary Flux Modes (EFM)** [[리뷰]](https://analyticalsciencejournals.onlinelibrary.wiley.com/doi/full/10.1002/biot.201200269)
+- **OptMDFpathway 기반 열역학적 방법** [[논문]](https://doi.org/10.1371/journal.pcbi.1006492)
+- **고급 균주 설계 알고리즘**: StrainDesign [[GitHub]](https://github.com/klamt-lab/straindesign)[[논문]](https://doi.org/10.1093/bioinformatics/btac632) 통합을 통해 OptKnock [[논문]](https://doi.org/10.1002/bit.10803), RobustKnock [[논문]](https://doi.org/10.1093/bioinformatics/btp704), OptCouple [[논문]](https://doi.org/10.1016/j.mec.2019.e00087), 고급 Minimal Cut Sets [[논문]](https://doi.org/10.1371/journal.pcbi.1008110) 등을 지원합니다.
 
-**→ If you have questions, suggestions or bug reports regarding CNApy, you can use either of the [CNApy GitHub issues](https://github.com/cnapy-org/CNApy/issues), the [CNApy GitHub discussions](https://github.com/cnapy-org/CNApy/discussions) or the [CNApy Gitter chat room](https://gitter.im/cnapy-org/community)**
+**→ CNApy 설치 방법이 궁금하시다면, [설치 옵션](#설치-옵션) 섹션을 확인해주세요.**
 
-**→ If you want to cite CNApy, see section [How to cite CNApy](#how-to-cite-cnapy)**
+**→ CNApy의 다양한 기능에 대해 더 알고 싶으시다면, [문서 및 튜토리얼](#문서-및-튜토리얼) 섹션을 참고해주세요.**
 
-**→ For information about how to contribute to CNApy as a developer, see section [Contribute to the CNApy development](#contribute-to-the-cnapy-development)**
+**→ 질문이나 제안, 버그 신고는 언제든 환영합니다! [CNApy GitHub 이슈](https://github.com/cnapy-org/CNApy/issues), [CNApy GitHub 토론](https://github.com/cnapy-org/CNApy/discussions) 또는 [CNApy Gitter 채팅방](https://gitter.im/cnapy-org/community)을 이용해주세요.**
 
-*Associated project note*: If you want to use the well-known MATLAB-based *CellNetAnalyzer* (CNA), *which is not compatible with CNApy*, you can download it from [CNA's website](https://www2.mpi-magdeburg.mpg.de/projects/cna/cna.html).
+**→ CNApy를 인용하고 싶으시다면, [CNApy 인용 방법](#cnapy-인용-방법) 섹션을 봐주세요.**
 
-## Installation Options
+**→ 개발자로서 CNApy에 기여하고 싶으시다면, [CNApy 개발에 기여하기](#cnapy-개발에-기여하기) 섹션을 확인해주세요.**
 
-There are 4 alternative ways to install CNApy:
+*참고*: MATLAB 기반의 유명한 *CellNetAnalyzer* (CNA)를 사용하고 싶으시다면(CNApy와는 호환되지 않아요), [CNA 웹사이트](https://www2.mpi-magdeburg.mpg.de/projects/cna/cna.html)에서 다운로드하실 수 있습니다.
 
-1. The easiest way for any user to install CNApy is by downloading its installer, which is provided for Windows, Linux and MacOS, see [Using CNApy installer](#using-cnapy-installer) for more.
-2. If you already have installed Python 3.10 (no other version) on your system, you can install CNApy simply through ```pip install cnapy``` in your console. Afterwards, you can start CNApy's GUI by running either ```cnapy``` or, if this doesn't work, ```python -m cnapy``` where "python" must call your Python 3.10 installation.
-3. If you already use conda or mamba (for mamba, just change the "conda" command to "mamba"), you can create a CNApy environment named ```cnapy-1.2.7``` as follows: 1) Run ```conda create --name cnapy-1.2.7 python=3.10 pip openjdk -c conda-forge```, 2) run ```conda activate cnapy-1.2.7```, 3) run ```pip install cnapy```. Then, you can start CNApy in the cnapy-1.2.7 conda environment by running either ```cnapy``` or, if this doesn't work, ```python -m cnapy```. Note that the [cnapy conda package](https://anaconda.org/cnapy/cnapy) is currently *not* being updated due to licensing uncertainties.
-4. If you want to develop CNApy, follow the instruction for the cloning and setup of the CNApy repository using git and conda or mamba in section [Setup the CNApy development environment](#setup-the-cnapy-development-environment).
+## 설치 옵션
 
-## Documentation and Tutorials
+CNApy를 설치하는 4가지 방법이 있습니다:
 
-- The [CNApy guide](https://cnapy-org.github.io/CNApy-guide/) contains information for all major functions of CNApy.
-- Our [CNApy YouTube channel](https://www.youtube.com/channel/UCRIXSdzs5WnBE3_uukuNMlg) provides some videos of working with CNApy.
-- We also provide directly usable [CNApy example projects](https://github.com/cnapy-org/CNApy-projects/releases/latest) which include some of the most common *E. coli* models. These projects can also be downloaded within CNApy at its first start-up or via CNApy's File menu.
+1.  **가장 쉬운 방법**: 윈도우, 리눅스, 맥OS용 설치 프로그램을 다운로드하여 설치하는 것입니다. 자세한 내용은 [CNApy 설치 프로그램 사용하기](#cnapy-설치-프로그램-사용하기)를 참고하세요.
+2.  **파이썬 사용자라면**: 시스템에 Python 3.10(다른 버전은 안 돼요!)이 설치되어 있다면, 콘솔에서 `pip install cnapy`를 입력하여 간단히 설치할 수 있습니다. 설치 후에는 `cnapy` 또는 `python -m cnapy` 명령어로 실행할 수 있습니다.
+3.  **conda/mamba 사용자라면**: `cnapy-1.2.7`이라는 환경을 만들어 설치할 수 있습니다.
+    1.  `conda create --name cnapy-1.2.7 python=3.10 pip openjdk -c conda-forge` 실행
+    2.  `conda activate cnapy-1.2.7` 실행
+    3.  `pip install cnapy` 실행
+    이후 `cnapy` 또는 `python -m cnapy`로 실행하세요. (참고: [cnapy conda 패키지](https://anaconda.org/cnapy/cnapy)는 라이선스 문제로 현재 업데이트되지 않고 있습니다.)
+4.  **개발자라면**: git과 conda/mamba를 사용하여 저장소를 복제하고 설정하는 방법은 [CNApy 개발 환경 설정하기](#cnapy-개발-환경-설정하기) 섹션을 참고해주세요.
 
+## 문서 및 튜토리얼
 
-## Using CNApy installer
+-   [CNApy 가이드](https://cnapy-org.github.io/CNApy-guide/)에서 주요 기능에 대한 정보를 확인하실 수 있습니다.
+-   [CNApy 유튜브 채널](https://www.youtube.com/channel/UCRIXSdzs5WnBE3_uukuNMlg)에서 사용 영상을 보실 수 있습니다.
+-   [CNApy 예제 프로젝트](https://github.com/cnapy-org/CNApy-projects/releases/latest)를 제공합니다. 가장 일반적인 *E. coli* 모델들이 포함되어 있으며, CNApy를 처음 시작할 때나 파일 메뉴를 통해 다운로드할 수 있습니다.
 
-This installer lets you create a local installation of CNApy under Windows, Linux or MacOS by following these instructions:
+## CNApy 설치 프로그램 사용하기
 
-*If you use Windows:*
+이 설치 프로그램을 사용하면 윈도우, 리눅스, 맥OS에서 로컬 설치를 쉽게 할 수 있습니다.
 
-- Download the Windows installer [from here](https://github.com/cnapy-org/CNApy/releases/download/v1.2.7/install_cnapy_here.bat)
-- Put this file into a folder where you want CNApy to be installed.
-- Double click on the file and let the CNApy installation run
-- Afterwards, you can run CNApy by either double-clicking on the newly created CNApy desktop icon, or by double-clicking "RUN_CNApy.bat" in the newly created cnapy-1.2.7 subfolder.
+*윈도우 사용자:*
 
-*If you use Linux or MacOS*:
+-   [여기서](https://github.com/cnapy-org/CNApy/releases/download/v1.2.7/install_cnapy_here.bat) 윈도우용 설치 프로그램을 다운로드하세요.
+-   CNApy를 설치하고 싶은 폴더에 파일을 넣으세요.
+-   파일을 더블 클릭하여 설치를 진행하세요.
+-   설치가 끝나면 바탕화면의 CNApy 아이콘이나 `cnapy-1.2.7` 폴더 안의 "RUN_CNApy.bat"을 더블 클릭하여 실행할 수 있습니다.
 
-- Download the Linux & MacOS installer [from here](https://github.com/cnapy-org/CNApy/releases/download/v1.2.7/install_cnapy_here.sh).
-- Put this file into a folder where you want CNApy to be installed.
-- Make the script executable by opening your console in the folder and run ```chmod u+x ./install_cnapy_here.sh```. Alternatively, if supported on your system, right-click on the file, go the file's settings and mark it as executable.
-- Now, either run ```./install_cnapy_here.sh``` in your console or, if supported on your system, double-click on install_cnapy_here.sh.
-- Finally, you can run CNApy by calling ```./run_cnapy.sh``` in your console (for this without another path beforehand, your console must point to the folder where run_cnapy.sh is located, e.g. if you are in the folder where install_cnapy_here.sh is located, through ```cd cnapy-1.2.7```). Alternatively, if supported by your system, double-click on "run_cnapy.sh" in the newly created cnapy-1.2.7 subfolder.
+*리눅스 또는 맥OS 사용자:*
 
-Technical side note: CNApy's installer is utilizing [micromamba](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html).
+-   [여기서](https://github.com/cnapy-org/CNApy/releases/download/v1.2.7/install_cnapy_here.sh) 리눅스 & 맥OS용 설치 프로그램을 다운로드하세요.
+-   CNApy를 설치하고 싶은 폴더에 파일을 넣으세요.
+-   콘솔을 열고 해당 폴더로 이동한 뒤 `chmod u+x ./install_cnapy_here.sh`를 실행하여 실행 권한을 부여하세요. (또는 파일 속성에서 실행 가능으로 설정하세요.)
+-   콘솔에서 `./install_cnapy_here.sh`를 실행하거나 파일을 더블 클릭하여 설치하세요.
+-   설치가 완료되면 콘솔에서 `./run_cnapy.sh`를 실행하거나(해당 폴더로 이동 필요), `cnapy-1.2.7` 폴더 안의 "run_cnapy.sh"를 더블 클릭하여 실행할 수 있습니다.
 
-## Setup the CNApy development environment
+기술적 참고: CNApy 설치 프로그램은 [micromamba](https://mamba.readthedocs.io/en/latest/installation/micromamba-installation.html)를 사용합니다.
 
-*Note:* The following instructions only have to be followed if you want to contribute to CNApy as a programmer. If this is not the case, follow other steps of the [Installation Options](#installation-options).
+## CNApy 개발 환경 설정하기
 
-Everyone is welcome to contribute to CNApy's development. [See our contribution file for general instructions](https://github.com/cnapy-org/CNApy/blob/master/CONTRIBUTING.md). Any contribution intentionally submitted for inclusion in the work by you, shall be licensed under the terms of the Apache 2.0 license without any additional terms or conditions.
+*참고:* 이 섹션은 CNApy 개발에 참여하고 싶은 프로그래머 분들을 위한 것입니다. 일반 사용자라면 [설치 옵션](#설치-옵션)을 따라주세요.
 
-Programatically, we recommend to use uv [[GitHub]](https://github.com/astral-sh/uv) to install all dependencies and manage installed Python versions. Alternatively, one can also use conda/mamba for the same tasks, although you would have to install CNApy's dependencies manually.
+CNApy 개발에 참여해주시는 모든 분들을 환영합니다! [기여 가이드](https://github.com/cnapy-org/CNApy/blob/master/CONTRIBUTING.md)에서 일반적인 지침을 확인해주세요. 기여해주신 모든 내용은 Apache 2.0 라이선스 하에 배포됩니다.
 
-### uv usage
-You can use uv for CNApy as follows:
+개발을 위해서는 uv [[GitHub]](https://github.com/astral-sh/uv)를 사용하여 의존성과 파이썬 버전을 관리하는 것을 추천합니다. conda/mamba를 사용할 수도 있지만, 의존성을 수동으로 설치해야 할 수 있습니다.
 
-1. Make sure that you have installed uv, e.g. through pip, pipx or another package manger (```apt```, ```brew```, ```nix``` ...) of your choice:
+### uv 사용법
+
+1.  uv가 설치되어 있는지 확인하세요. (pip, pipx 등으로 설치 가능)
 
 ```sh
-# E.g., you can install uv through
-pip install uv # or
+# 예시
+pip install uv # 또는
 pipx install uv
 ```
 
-2. Checkout the latest cnapy development version using git
+2.  git을 사용하여 최신 cnapy 개발 버전을 가져오세요.
 
 ```sh
 git clone https://github.com/cnapy-org/CNApy.git
 ```
 
-3. Change into the source directory and run CNApy
+3.  소스 디렉토리로 이동하여 CNApy를 실행하세요.
 
 ```sh
 cd CNApy
 uv run cnapy.py
 ```
 
-uv will automatically install the correct Python version and CNApy dependencies (all done by reading CNApy's pyproject.toml file). If you get a Java/JDK/JVM/jpype error when running CNApy, consider installing OpenJDK [[Site]](https://openjdk.org/install/) on your system to fix this problem.
+uv가 자동으로 올바른 파이썬 버전과 의존성을 설치해줍니다. 만약 Java/JDK/JVM/jpype 관련 오류가 발생한다면, 시스템에 OpenJDK [[사이트]](https://openjdk.org/install/)를 설치해보세요.
 
-## How to cite CNApy
+## CNApy 인용 방법
 
-If you use CNApy in your scientific work, please cite CNApy's publication:
+연구에 CNApy를 사용하셨다면, 다음 논문을 인용해주시면 감사하겠습니다:
 
 Thiele et al. (2022). CNApy: a CellNetAnalyzer GUI in Python for analyzing and designing metabolic networks.
 *Bioinformatics* 38, 1467-1469, [doi.org/10.1093/bioinformatics/btab828](https://doi.org/10.1093/bioinformatics/btab828).

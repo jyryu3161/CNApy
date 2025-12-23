@@ -132,6 +132,24 @@ Thiele et al. (2022). CNApy: a CellNetAnalyzer GUI in Python for analyzing and d
 
 이 버전에는 다음과 같은 기능이 추가/개선되었습니다:
 
+- **Model Management 기능 추가**: Model 메뉴에서 다양한 모델 관리 도구를 사용할 수 있습니다.
+  - GPR 정리: GPR 규칙에서 중복된 유전자를 자동으로 탐지하고 정리
+  - Dead-end Metabolites: 생산만 되거나 소비만 되는 대사체 탐지
+  - Blocked Reactions: FVA 기반으로 플럭스가 0인 반응 탐지
+  - Orphan Reactions: 고립된 대사체를 가진 반응 탐지
+  - Model Validation: 질량/전하 균형, 바운드 오류 등 종합 검증
+
+- **External Flux Data Loading 기능 추가**: Model 메뉴에서 외부 플럭스 데이터를 로드하여 시각화할 수 있습니다.
+  - CSV/TSV 파일에서 reaction-flux 데이터 로드
+  - 여러 조건(파일)을 동시에 로드하여 비교 분석
+  - 두 조건 간 Log2 Fold Change 계산 및 히트맵 시각화 (녹색=상향, 빨강=하향)
+
+- **LLM 기반 Strain Analysis 기능 추가**: Model 메뉴에서 ChatGPT 또는 Gemini API를 활용하여 특정 균주에서 반응/유전자의 존재 가능성을 분석할 수 있습니다.
+  - OpenAI (GPT-4o 등) 및 Google Gemini Flash 지원
+  - 웹 검색 기반 실시간 정보 활용
+  - API 키는 로컬에 저장되어 매번 입력할 필요 없음
+  - 분석 결과 JSON/CSV 내보내기 지원
+
 - **ROOM (Regulatory On/Off Minimization) 기능 추가**: Analysis 메뉴에서 MILP solver를 사용하여 ROOM 분석을 수행할 수 있습니다. 유전자 녹아웃 후 유의미한 플럭스 변화를 최소화하는 방법입니다.
 
 - **Flux Response Analysis 메뉴 연결**: 타겟 반응의 플럭스를 스캔하면서 제품 반응의 최대 생산률을 분석하는 기능이 Analysis 메뉴에 추가되었습니다.

@@ -65,6 +65,9 @@ from cnapy.gui_elements.configuration_gurobi import GurobiConfigurationDialog
 from cnapy.gui_elements.thermodynamics_dialog import ThermodynamicAnalysisTypes, ThermodynamicDialog
 from cnapy.gui_elements.flux_response_dialog import FluxResponseDialog
 from cnapy.gui_elements.omics_integration_dialog import OmicsIntegrationDialog
+from cnapy.gui_elements.model_management_dialog import ModelManagementDialog
+from cnapy.gui_elements.flux_data_dialog import FluxDataDialog
+from cnapy.gui_elements.llm_analysis_dialog import LLMAnalysisDialog
 import cnapy.utils as utils
 
 SBML_suffixes = "*.xml *.sbml *.xml.gz *.sbml.gz *.xml.zip *.sbml.zip"
@@ -552,6 +555,24 @@ class MainWindow(QMainWindow):
         in_out_flux_action.triggered.connect(self.in_out_flux)
         self.analysis_menu.addAction(in_out_flux_action)
 
+        # Model menu (Model Management features)
+        self.model_menu = self.menu.addMenu("Model")
+
+        model_management_action = QAction("Model Management...", self)
+        model_management_action.triggered.connect(self.show_model_management)
+        self.model_menu.addAction(model_management_action)
+
+        self.model_menu.addSeparator()
+
+        load_flux_data_action = QAction("Load External Flux Data...", self)
+        load_flux_data_action.triggered.connect(self.show_flux_data_dialog)
+        self.model_menu.addAction(load_flux_data_action)
+
+        self.model_menu.addSeparator()
+
+        llm_analysis_action = QAction("LLM Strain Analysis (ChatGPT/Gemini)...", self)
+        llm_analysis_action.triggered.connect(self.show_llm_analysis_dialog)
+        self.model_menu.addAction(llm_analysis_action)
 
         self.config_menu = self.menu.addMenu("Config")
 
@@ -2644,3 +2665,23 @@ class MainWindow(QMainWindow):
     @Slot()
     def reload_scenario(self):
         self.load_scenario_file(self.appdata.project.scen_values.file_name)
+
+    @Slot()
+    def show_model_management(self):
+        """Show the Model Management dialog."""
+        dialog = ModelManagementDialog(self.appdata)
+        dialog.exec()
+        self.central_widget.update()
+
+    @Slot()
+    def show_flux_data_dialog(self):
+        """Show the External Flux Data loading dialog."""
+        dialog = FluxDataDialog(self.appdata, self.central_widget)
+        dialog.exec()
+        self.central_widget.update()
+
+    @Slot()
+    def show_llm_analysis_dialog(self):
+        """Show the LLM-based Strain Analysis dialog."""
+        dialog = LLMAnalysisDialog(self.appdata)
+        dialog.exec()

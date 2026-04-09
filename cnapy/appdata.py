@@ -3,6 +3,8 @@
 import json
 import os
 
+from cnapy.ecmodel.ecmodel_data import ECModelData
+
 try:
     import gurobipy
 except ImportError:
@@ -491,6 +493,9 @@ class ProjectData:
         # Format: {condition_name: {reaction_id: flux_value, ...}, ...}
         self.omics_results: dict[str, dict[str, float]] = {}
         self.omics_conditions: list[str] = []  # Ordered list of condition names
+
+        # GECKO enzyme-constrained model data
+        self.ec_model_data: ECModelData = ECModelData()
 
     def load_scenario_into_model(self, model: cobra.Model):
         for x in self.scen_values:

@@ -86,6 +86,7 @@ from cnapy.gui_elements.map_view import MapView
 from cnapy.gui_elements.mcs_dialog import MCSDialog
 from cnapy.gui_elements.media_management_dialog import MediaManagementDialog
 from cnapy.gui_elements.model_management_dialog import ModelManagementDialog
+from cnapy.gui_elements.gecko_unified_dialog import GeckoUnifiedDialog
 from cnapy.gui_elements.omics_integration_dialog import OmicsIntegrationDialog
 from cnapy.gui_elements.plot_space_dialog import PlotSpaceDialog
 from cnapy.gui_elements.reactions_list import build_reaction_string_with_names
@@ -540,6 +541,15 @@ class MainWindow(QMainWindow):
         omics_dialog_action.triggered.connect(self.perform_omics_integration)
         self.omics_menu.addAction(omics_dialog_action)
 
+        self.analysis_menu.addSeparator()
+
+        # GECKO enzyme-constrained model menu
+        self.gecko_dialog = None  # Singleton for non-modal dialog
+
+        gecko_action = QAction("Enzyme-Constrained Model (GECKO)…", self)
+        gecko_action.triggered.connect(self.show_gecko_dialog)
+        self.analysis_menu.addAction(gecko_action)
+
         self.thermodynamic_menu = self.analysis_menu.addMenu("Thermodynamic analyses")
 
         optmdf_action = QAction("OptMDFpathway...", self)
@@ -887,6 +897,24 @@ class MainWindow(QMainWindow):
     def _on_omics_dialog_closed(self):
         """Handle omics dialog closure."""
         self.omics_dialog = None
+
+    @Slot()
+    def show_gecko_dialog(self):
+        """Open the unified GECKO workflow dialog (non-modal singleton)."""
+        if self.gecko_dialog is not None and self.gecko_dialog.isVisible():
+            self.gecko_dialog.raise_()
+            self.gecko_dialog.activateWindow()
+            return
+
+        self.gecko_dialog = GeckoUnifiedDialog(self.appdata, self)
+        self.gecko_dialog.setModal(False)
+        self.gecko_dialog.setAttribute(Qt.WA_DeleteOnClose)
+        self.gecko_dialog.destroyed.connect(self._on_gecko_dialog_closed)
+        self.gecko_dialog.show()
+
+    @Slot()
+    def _on_gecko_dialog_closed(self):
+        self.gecko_dialog = None
 
     # Strain design computation and viewing functions
     def strain_design(self):
@@ -1716,6 +1744,15 @@ class MainWindow(QMainWindow):
                         self.appdata.project.comp_values = {k: tuple(v) for k, v in comp_data.get("values", {}).items()}
                         self.appdata.project.comp_values_type = comp_data.get("type", 0)
 
+                # Load ecmodel_data if present
+                from cnapy.ecmodel.ecmodel_data import ECModelData as _ECModelData
+                ecmodel_data_path = temp_dir.name + "/ecmodel_data.json"
+                if os.path.exists(ecmodel_data_path):
+                    with open(ecmodel_data_path) as fp:
+                        self.appdata.project.ec_model_data = _ECModelData.from_dict(json.load(fp))
+                else:
+                    self.appdata.project.ec_model_data = _ECModelData()
+
                 self.clear_status_bar()
                 self.update_scenario_file_name()
                 (reactions, values) = self.appdata.project.collect_default_scenario_values()
@@ -1879,6 +1916,14 @@ class MainWindow(QMainWindow):
             with open(comp_values_file, "w") as fp:
                 json.dump(comp_data, fp)
 
+        # Save ecmodel_data if an ecModel is active
+        ecmodel_data_file = None
+        if self.appdata.project.ec_model_data.is_ecmodel:
+            import json as _json
+            ecmodel_data_file = tmp_dir + "ecmodel_data.json"
+            with open(ecmodel_data_file, "w") as fp:
+                _json.dump(self.appdata.project.ec_model_data.to_dict(), fp)
+
         with ZipFile(filename, "w") as zip_obj:
             zip_obj.write(tmp_dir + "model.sbml", arcname="model.sbml")
             zip_obj.write(tmp_dir + "box_positions.json", arcname="box_positions.json")
@@ -1888,6 +1933,9 @@ class MainWindow(QMainWindow):
             # Save comp_values if present
             if comp_values_file:
                 zip_obj.write(comp_values_file, arcname="comp_values.json")
+            # Save ecmodel_data if present
+            if ecmodel_data_file:
+                zip_obj.write(ecmodel_data_file, arcname="ecmodel_data.json")
 
         # put svgs into temporary directory and update references
         with ZipFile(filename, "r") as zip_ref:

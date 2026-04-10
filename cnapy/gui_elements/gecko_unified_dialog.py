@@ -902,10 +902,14 @@ class _WhatifPage(QWidget):
         rl.addLayout(comp_row)
 
         rl.addWidget(QLabel("Top 10 enzyme usage changes:"))
-        self.diff_table = QTableWidget(0, 4)
+        self.diff_table = QTableWidget(0, 6)
         self.diff_table.setHorizontalHeaderLabels([
-            "UniProt ID", "Baseline cap. (%)", "Modified cap. (%)", "Δ (%)"])
-        self.diff_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+            "UniProt ID", "Gene", "UB (mg/gDCW)",
+            "Baseline cap. (%)", "Modified cap. (%)", "Δ (%)"])
+        hh = self.diff_table.horizontalHeader()
+        hh.setSectionResizeMode(QHeaderView.ResizeToContents)
+        hh.setSectionResizeMode(0, QHeaderView.Stretch)
+        hh.setSectionResizeMode(1, QHeaderView.Stretch)
         self.diff_table.setEditTriggers(QAbstractItemView.NoEditTriggers)
         self.diff_table.setMaximumHeight(200)
         rl.addWidget(self.diff_table)
@@ -1026,19 +1030,29 @@ class _WhatifPage(QWidget):
               base_usage.get(u, {}).get("cap_usage", 0.0) * 100,
               new_usage.get(u, {}).get("cap_usage", 0.0) * 100,
               (new_usage.get(u, {}).get("cap_usage", 0.0) -
-               base_usage.get(u, {}).get("cap_usage", 0.0)) * 100)
+               base_usage.get(u, {}).get("cap_usage", 0.0)) * 100,
+              new_usage.get(u, base_usage.get(u, {})).get("ub", 0.0))
              for u in set(base_usage) | set(new_usage)],
             key=lambda x: abs(x[3]), reverse=True)[:10]
 
         self.diff_table.setRowCount(len(diffs))
-        for i, (u, bc, nc, delta) in enumerate(diffs):
-            self.diff_table.setItem(i, 0, QTableWidgetItem(u))
-            self.diff_table.setItem(i, 1, QTableWidgetItem(f"{bc:.1f}%"))
-            self.diff_table.setItem(i, 2, QTableWidgetItem(f"{nc:.1f}%"))
+        for i, (u, bc, nc, delta, ub) in enumerate(diffs):
+            gene = ec.uniprot_data.get(u, {}).get("gene", "")
+            is_modified = (u == uid)
+
+            uid_text = f"★ {u}" if is_modified else u
+            uid_item = QTableWidgetItem(uid_text)
+            if is_modified:
+                uid_item.setForeground(Qt.darkBlue)
+            self.diff_table.setItem(i, 0, uid_item)
+            self.diff_table.setItem(i, 1, QTableWidgetItem(gene))
+            self.diff_table.setItem(i, 2, _NumItem(ub))
+            self.diff_table.setItem(i, 3, QTableWidgetItem(f"{bc:.1f}%"))
+            self.diff_table.setItem(i, 4, QTableWidgetItem(f"{nc:.1f}%"))
             s = "+" if delta >= 0 else ""
             d_item = QTableWidgetItem(f"{s}{delta:.1f}%")
             d_item.setForeground(Qt.darkGreen if delta < 0 else Qt.darkRed)
-            self.diff_table.setItem(i, 3, d_item)
+            self.diff_table.setItem(i, 5, d_item)
 
 
 # ── Unified dialog ────────────────────────────────────────────────────────────

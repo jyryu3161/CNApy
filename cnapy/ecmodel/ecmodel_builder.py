@@ -212,9 +212,8 @@ def _reactions_for_entry(model: cobra.Model, entry: dict,
     # Priority 1: explicit reaction IDs in entry["rxns"]
     if entry["rxns"]:
         for rid in entry["rxns"]:
-            base = rid.rstrip("_REV").rstrip("_")
             for rxn in model.reactions:
-                if rxn.id == rid or rxn.id.startswith(rid):
+                if rxn.id == rid or rxn.id == rid + "_REV":
                     rxn_ids.append(rxn.id)
         return list(dict.fromkeys(rxn_ids))  # deduplicate, preserve order
 
@@ -427,8 +426,11 @@ def _apply_entry_full(ecmodel: cobra.Model, ec_data: ECModelData,
                 mw = info["mw_da"]
                 coeff = _stoich_coeff(mw, kcat, units)
                 enz_met = ecmodel.metabolites.get_by_id(ec_data.enzyme_met_ids[prot])
-                # Add to reaction (accumulates if called multiple times)
-                rxn.add_metabolites({enz_met: coeff}, combine=False)
+                # Use minimum-cost (= highest kcat) entry if this enzyme-reaction
+                # pair appears in multiple kcat rows.
+                existing = rxn.metabolites.get(enz_met, 0.0)
+                if existing == 0.0 or abs(coeff) < abs(existing):
+                    rxn.add_metabolites({enz_met: coeff}, combine=False)
 
     else:
         # No proteins specified – only rxns.  We need the gene → protein mapping.
@@ -494,7 +496,12 @@ def _apply_entry_light(ecmodel: cobra.Model, ec_data: ECModelData,
             except KeyError:
                 failed.append(rxn_id)
                 continue
-            rxn.add_metabolites({prot_pool_met: min_coeff}, combine=False)
+            # Use the minimum-cost (= highest kcat) isozyme for each reaction.
+            # If a previous entry already set a coefficient, only overwrite if
+            # this entry's cost is strictly lower (i.e. this enzyme is faster).
+            existing = rxn.metabolites.get(prot_pool_met, 0.0)
+            if existing == 0.0 or abs(min_coeff) < abs(existing):
+                rxn.add_metabolites({prot_pool_met: min_coeff}, combine=False)
 
     return failed
 
@@ -702,9 +709,11 @@ def apply_proteomics(ecmodel: cobra.Model, ec_data: "ECModelData",
     Apply measured protein abundances to constrain individual enzyme usage
     reactions (GECKO constrainEnzConcs equivalent).
 
-    For each enzyme with a measured level:
-      - Set usage_prot_{id}.upper_bound = measured_level
-      - Disconnect from prot_pool (stoich coefficient = 0)
+    For each enzyme with a measured level (mg/gDCW):
+      1. Disconnect from prot_pool (stoich coefficient → 0)
+      2. Set usage_prot_{id}.upper_bound = measured_level [mg/gDCW]
+      3. Reduce prot_pool UB by the sum of applied abundances, so the pool
+         budget only covers unmeasured enzymes (GECKO paper §2.3).
 
     For enzymes without measured data: unchanged (still draw from prot_pool).
 
@@ -722,11 +731,17 @@ def apply_proteomics(ecmodel: cobra.Model, ec_data: "ECModelData",
     prot_pool_met_id = ec_data.protein_pool_met_id
     n_applied = 0
     missing = []
+    total_applied_mg = 0.0
 
     try:
         prot_pool_met = ecmodel.metabolites.get_by_id(prot_pool_met_id)
     except KeyError:
         raise ValueError("prot_pool metabolite not found – is this an ecModel?")
+
+    try:
+        pool_rxn = ecmodel.reactions.get_by_id(ec_data.protein_pool_rxn_id)
+    except KeyError:
+        raise ValueError("prot_pool_exchange reaction not found – is this an ecModel?")
 
     for uid, level in prot_data.items():
         usage_rxn_id = f"usage_prot_{uid}"
@@ -736,19 +751,25 @@ def apply_proteomics(ecmodel: cobra.Model, ec_data: "ECModelData",
             missing.append(uid)
             continue
 
-        # Disconnect from protein pool (set stoich to 0)
+        # 1. Disconnect from protein pool
         usage_rxn.add_metabolites({prot_pool_met: 0}, combine=False)
-        # Constrain by measured abundance
+        # 2. Constrain by measured abundance [mg/gDCW]
         usage_rxn.upper_bound = level
+        total_applied_mg += level
         n_applied += 1
+
+    # 3. Reduce pool UB so it covers only the remaining (unmeasured) enzymes
+    new_pool_ub = max(0.0, pool_rxn.upper_bound - total_applied_mg)
+    pool_rxn.upper_bound = new_pool_ub
 
     return n_applied, missing
 
 
 def remove_proteomics(ecmodel: cobra.Model, ec_data: "ECModelData") -> int:
     """
-    Remove proteomics constraints: reconnect all usage reactions to prot_pool
-    and restore original upper bounds (1000).
+    Remove proteomics constraints: reconnect all usage reactions to prot_pool,
+    restore individual upper bounds to 1000, and restore the pool UB to its
+    original value (ec_data.pool_bound()).
 
     Returns number of reactions restored.
     """
@@ -762,21 +783,41 @@ def remove_proteomics(ecmodel: cobra.Model, ec_data: "ECModelData") -> int:
     for rxn in ecmodel.reactions:
         if not rxn.id.startswith("usage_prot_"):
             continue
-        # Reconnect to prot_pool
-        rxn.add_metabolites({prot_pool_met: -1.0}, combine=False)
-        rxn.upper_bound = 1000.0
-        n += 1
+        # Only restore if this reaction was disconnected from pool
+        if prot_pool_met not in rxn.metabolites or rxn.metabolites[prot_pool_met] == 0:
+            rxn.add_metabolites({prot_pool_met: -1.0}, combine=False)
+            rxn.upper_bound = 1000.0
+            n += 1
+
+    # Restore pool UB to the value set at ecModel build time
+    try:
+        pool_rxn = ecmodel.reactions.get_by_id(ec_data.protein_pool_rxn_id)
+        pool_rxn.upper_bound = ec_data.pool_bound()
+    except KeyError:
+        pass
+
     return n
 
 
 def flexibilize_enz_concs(ecmodel: cobra.Model, prot_data: dict) -> list[str]:
     """
-    Relax individual proteomics constraints that make FBA infeasible
-    (GECKO flexibilizeEnzConcs equivalent).
+    Relax the minimum set of proteomics constraints needed to restore FBA
+    feasibility (GECKO flexibilizeEnzConcs equivalent).
 
-    For each enzyme whose measured level causes infeasibility, the constraint
-    is relaxed to 1000 mg/gDCW (effectively unconstrained). Enzymes that can
-    stay constrained without causing infeasibility are kept as-is.
+    Strategy
+    --------
+    1. Relax ALL proteomics constraints to 1000 (unconstrained).
+    2. Verify FBA is feasible in this state (baseline check — if not, the
+       model itself is broken and we cannot help).
+    3. Re-tighten each constraint one by one (highest abundance first, as
+       highly abundant enzymes are less likely to be the bottleneck).
+       - If tightening keeps FBA feasible → keep it tight (enzyme stays
+         constrained).
+       - If tightening causes infeasibility → leave it relaxed.
+
+    This correctly handles cases where *multiple* enzymes simultaneously
+    contribute to infeasibility (the previous one-at-a-time approach failed
+    in those cases).
 
     Parameters
     ----------
@@ -787,24 +828,42 @@ def flexibilize_enz_concs(ecmodel: cobra.Model, prot_data: dict) -> list[str]:
     -------
     relaxed : list of UniProt IDs whose constraints were relaxed
     """
-    relaxed = []
-    for uid in list(prot_data.keys()):
-        usage_rxn_id = f"usage_prot_{uid}"
+    # Collect enzymes that are currently proteomics-constrained
+    constrained: list[tuple[str, float, cobra.Reaction]] = []
+    for uid, level in prot_data.items():
         try:
-            usage_rxn = ecmodel.reactions.get_by_id(usage_rxn_id)
+            usage_rxn = ecmodel.reactions.get_by_id(f"usage_prot_{uid}")
         except KeyError:
             continue
-        old_ub = usage_rxn.upper_bound
-        # Temporarily relax
+        constrained.append((uid, level, usage_rxn))
+
+    if not constrained:
+        return []
+
+    # Step 1: relax all proteomics constraints
+    for uid, level, usage_rxn in constrained:
         usage_rxn.upper_bound = 1000.0
+
+    # Step 2: baseline feasibility check (model without any proteomics UBs)
+    sol = run_fba_on_ecmodel(ecmodel)
+    if sol.status != "optimal":
+        # Model is infeasible even without proteomics — restore and give up
+        for uid, level, usage_rxn in constrained:
+            usage_rxn.upper_bound = level
+        return []
+
+    # Step 3: re-tighten one by one, highest abundance first
+    # (most abundant enzymes are least likely to be the bottleneck)
+    relaxed_uids = {uid for uid, _, _ in constrained}  # start: all relaxed
+    for uid, level, usage_rxn in sorted(constrained, key=lambda x: x[1], reverse=True):
+        usage_rxn.upper_bound = level          # tighten
         sol = run_fba_on_ecmodel(ecmodel)
         if sol.status == "optimal":
-            # Keeping relaxed resolves infeasibility — leave it relaxed
-            relaxed.append(uid)
+            relaxed_uids.discard(uid)          # tightening is OK → keep tight
         else:
-            # Still infeasible even after relaxing this one — restore
-            usage_rxn.upper_bound = old_ub
-    return relaxed
+            usage_rxn.upper_bound = 1000.0     # tightening broke FBA → stay relaxed
+
+    return sorted(relaxed_uids)
 
 
 # ── kcat what-if analysis ─────────────────────────────────────────────────────

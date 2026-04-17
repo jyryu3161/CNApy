@@ -286,10 +286,13 @@ def load_ecmodel(path: str | Path) -> tuple[cobra.Model, ECModelData]:
 
     mets_by_id: dict[str, cobra.Metabolite] = {}
     for m in document.get("metabolites", []) or []:
+        # cobra's name/compartment default to "" — GUI code concatenates these
+        # directly into tooltips, so we must never hand it None here even if
+        # the YAML field was absent.
         met = cobra.Metabolite(
             id=str(m.get("id", "")),
-            name=str(m.get("name", "")) or None,
-            compartment=str(m.get("compartment", "")) or None,
+            name=str(m.get("name") or ""),
+            compartment=str(m.get("compartment") or ""),
         )
         formula = m.get("formula")
         if formula:
@@ -316,7 +319,7 @@ def load_ecmodel(path: str | Path) -> tuple[cobra.Model, ECModelData]:
     for r in document.get("reactions", []) or []:
         rxn = cobra.Reaction(
             id=str(r.get("id", "")),
-            name=str(r.get("name", "")) or None,
+            name=str(r.get("name") or ""),
             lower_bound=_as_float(r.get("lower_bound", 0.0)),
             upper_bound=_as_float(r.get("upper_bound", 1000.0)),
         )
@@ -346,8 +349,14 @@ def load_ecmodel(path: str | Path) -> tuple[cobra.Model, ECModelData]:
             rxn.annotation.update(annotation)
 
     # ── rebuild ECModelData ────────────────────────────────────────────────
+    # gecko3-yaml-import FR-2/FR-3: detect ecModel status from the document.
+    # A YAML file is an ecModel only when it carries an ``ec-rxns`` section;
+    # a plain GEM YAML (cobra or GECKO GEM distribution) loads as a regular
+    # project so the user can still run the Build ecModel pipeline.
+    is_ecmodel = "ec-rxns" in document
+
     ec_data = ECModelData()
-    ec_data.is_ecmodel = True
+    ec_data.is_ecmodel = is_ecmodel
     ec_data.schema_version = int(meta.get("schema_version",
                                            CURRENT_SCHEMA_VERSION))
     ec_data.gecko_light = str(meta.get("geckoLight", "false")).lower() == "true"
@@ -387,8 +396,11 @@ def load_ecmodel(path: str | Path) -> tuple[cobra.Model, ECModelData]:
         if any(r.id == f"usage_prot_{uid}" for r in model.reactions)
     }
 
-    logger.info("Loaded ecModel YAML from %s (%d reactions, %d ec-rxns)",
-                in_path, len(model.reactions), ec_data.ec.n_rxns())
+    logger.info(
+        "Loaded %s YAML from %s (%d reactions, %d ec-rxns)",
+        "ecModel" if is_ecmodel else "GEM",
+        in_path, len(model.reactions), ec_data.ec.n_rxns(),
+    )
 
     return model, ec_data
 

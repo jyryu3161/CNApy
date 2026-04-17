@@ -133,6 +133,11 @@ class MainWindow(QMainWindow):
         self.file_menu.addAction(new_project_from_sbml_action)
         new_project_from_sbml_action.triggered.connect(self.new_project_from_sbml)
 
+        # gecko3-yaml-import FR-1 — accept GECKO YAML (plain GEM or ecModel).
+        new_project_from_yaml_action = QAction("New project from YAML...", self)
+        self.file_menu.addAction(new_project_from_yaml_action)
+        new_project_from_yaml_action.triggered.connect(self.new_project_from_yaml)
+
         open_project_action = QAction("&Open project...", self)
         open_project_action.setShortcut("Ctrl+O")
         self.file_menu.addAction(open_project_action)
@@ -1679,6 +1684,60 @@ class MainWindow(QMainWindow):
             self.update_recently_used_models(filename)
 
             self.setCursor(Qt.ArrowCursor)
+
+    @Slot()
+    def new_project_from_yaml(self, filename: str = ""):
+        """gecko3-yaml-import FR-1 — load a GECKO YAML (plain GEM or ecModel).
+
+        The loader auto-detects the YAML flavour: files carrying an
+        ``ec-rxns`` section become ecModel projects (Revert button active);
+        plain GEM YAMLs land as regular projects with the Build ecModel
+        pipeline available.
+        """
+        from cnapy.ecmodel.exceptions import EcYamlError
+        from cnapy.ecmodel.yaml_io import load_ecmodel
+
+        if not self.checked_unsaved():
+            return
+
+        if not filename:
+            dialog = QFileDialog(self)
+            filename = dialog.getOpenFileName(
+                self, "New project from YAML",
+                self.appdata.work_directory,
+                "GECKO YAML (*.yml *.yaml);;All files (*)",
+            )[0]
+        if not filename or not os.path.exists(filename):
+            return
+
+        self.setCursor(Qt.BusyCursor)
+        try:
+            cobra_py_model, ec_data = load_ecmodel(filename)
+        except EcYamlError as exc:
+            self.setCursor(Qt.ArrowCursor)
+            QMessageBox.warning(self, "Could not read YAML.", str(exc))
+            return
+        except Exception as exc:   # pragma: no cover — unexpected I/O
+            self.setCursor(Qt.ArrowCursor)
+            QMessageBox.critical(self, "Could not read YAML.",
+                                 f"Unexpected error: {exc}")
+            return
+
+        self.new_project_unchecked()
+        self.appdata.project.cobra_py_model = cobra_py_model
+        self.appdata.project.ec_model_data = ec_data
+        self.appdata.project.store_original_bounds()
+        self.set_current_filename(filename)
+
+        default_map = CnaMap("Map")
+        self.appdata.project.maps = {"Map": default_map}
+        self.recreate_maps()
+        self.centralWidget().update(rebuild_all_tabs=True)
+        self.update_current_solver_name()
+        self.update_scenario_file_name()
+        self.update_recently_used_models(filename)
+
+        self.setCursor(Qt.ArrowCursor)
 
     def open_project(self, filename):
         self.close_project_dialogs()

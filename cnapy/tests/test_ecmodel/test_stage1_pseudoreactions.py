@@ -5,15 +5,72 @@ Design Ref: §8.2 scenarios 1-2.
 
 from __future__ import annotations
 
+import math
+
 import cobra
 import pytest
 
-from cnapy.ecmodel.ecmodel_builder import build_ecmodel
+from cnapy.ecmodel.ecmodel_builder import (
+    _stoich_coeff,
+    build_ecmodel,
+    parse_customkcats_file,
+    parse_uniprot_file,
+)
 from cnapy.ecmodel.ecmodel_data import ECModelData
 from cnapy.ecmodel.expansion import (
     PSEUDOREACTION_KEYWORD,
     clear_pseudoreaction_gpr,
 )
+
+
+# ── NaN-safety for DLKcat / UniProt inputs ────────────────────────────────────
+
+class TestNaNGuards:
+    """Regression: DLKcat.tsv contains rows whose predicted kcat is NaN
+    (substrate out of training distribution). These must be skipped by the
+    parser and neutralised by ``_stoich_coeff`` — otherwise they leak into
+    the solver as NaN stoichiometric coefficients."""
+
+    def test_stoich_coeff_rejects_nan_kcat(self):
+        assert _stoich_coeff(10000, float("nan")) == 0.0
+
+    def test_stoich_coeff_rejects_nan_mw(self):
+        assert _stoich_coeff(float("nan"), 10) == 0.0
+
+    def test_stoich_coeff_rejects_inf(self):
+        assert _stoich_coeff(float("inf"), 10) == 0.0
+        assert _stoich_coeff(10000, float("inf")) == 0.0
+
+    def test_parser_skips_nan_kcat_rows(self, tmp_path):
+        tsv = tmp_path / "kcat.tsv"
+        tsv.write_text(
+            "proteins\tkcat\trxns\tstoicho\n"
+            "P001\t100.0\tr1\t1\n"
+            "P002\t\tr2\t1\n"          # empty → pandas NaN → must be skipped
+            "P003\tnan\tr3\t1\n"         # literal NaN → must be skipped
+            "P004\t50.0\tr4\t1\n",
+        )
+        entries = parse_customkcats_file(str(tsv))
+        kcats = [e["kcat"] for e in entries]
+        assert all(math.isfinite(k) and k > 0 for k in kcats)
+        rxns = {e["rxns"][0] for e in entries}
+        assert rxns == {"r1", "r4"}
+
+    def test_parser_zeroes_nan_mw(self, tmp_path):
+        tsv = tmp_path / "uni.tsv"
+        tsv.write_text(
+            "Entry\tMass\tGene Names\n"
+            "P001\t50000\tgA\n"
+            "P002\t\tgB\n"               # empty mass → pandas NaN
+            "P003\tnot_a_number\tgC\n",   # unparseable
+        )
+        uni = parse_uniprot_file(str(tsv))
+        assert all(math.isfinite(v["mw_da"]) for v in uni.values())
+        assert uni["P002"]["mw_da"] == 0.0
+        assert uni["P003"]["mw_da"] == 0.0
+
+
+# ── existing FR-01 cases ──────────────────────────────────────────────────────
 
 
 class TestClearPseudoreactionGpr:

@@ -16,6 +16,7 @@ get_enzyme_usage(ecmodel, solution) → dict
 
 from __future__ import annotations
 
+import math
 import re
 from typing import TYPE_CHECKING
 
@@ -85,12 +86,15 @@ def parse_customkcats_file(path: str) -> list[dict]:
         notes        = str(row.get("notes", "")).strip()
         stoicho_raw  = str(row.get("stoicho", "1")).strip()
 
-        # Skip blank or NaN kcat
+        # Skip blank, NaN, Inf, or non-positive kcat. ``float('nan') <= 0`` is
+        # False (all NaN comparisons are), so an explicit isfinite check is
+        # required — DLKcat prediction failures come through as NaN and
+        # would otherwise leak into the solver as NaN stoichiometry.
         try:
             kcat = float(kcat_raw)
         except (TypeError, ValueError):
             continue
-        if kcat <= 0:
+        if not math.isfinite(kcat) or kcat <= 0:
             continue
 
         proteins = [p.strip() for p in proteins_raw.split("+") if p.strip() and p.strip() != "nan"]
@@ -189,6 +193,10 @@ def parse_uniprot_file(path: str) -> dict:
         try:
             mw = float(str(row.get(col_map.get("mass", ""), 0)).replace(",", ""))
         except (ValueError, TypeError):
+            mw = 0.0
+        # Same NaN guard as for kcat — an unparseable / missing Mass cell
+        # becomes pandas NaN and survives ``float()``.
+        if not math.isfinite(mw) or mw < 0:
             mw = 0.0
 
         result[uid] = {
@@ -420,7 +428,14 @@ def _stoich_coeff(mw_da: float, kcat_per_s: float, subunits: int = 1) -> float:
     Stoichiometric coefficient for the enzyme pseudo-metabolite.
     Follows GECKO formula: -(MW_Da / (kcat_1/s * 3600)) * subunit_copies
     Units are internally consistent with GECKO's protein pool in mg/gDCW.
+
+    Returns 0.0 on any non-finite or non-positive input — without this guard
+    a NaN kcat / MW (e.g. failed DLKcat predictions) would reach the solver
+    as a NaN stoichiometric coefficient and raise "Element 0 of a double
+    array is Nan or Inf" on Gurobi / GLPK.
     """
+    if not (math.isfinite(mw_da) and math.isfinite(kcat_per_s)):
+        return 0.0
     if kcat_per_s <= 0 or mw_da <= 0:
         return 0.0
     return -(mw_da / (kcat_per_s * 3600.0)) * subunits

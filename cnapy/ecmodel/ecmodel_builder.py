@@ -623,6 +623,12 @@ def build_ecmodel(model: cobra.Model,
 
     ec_data.is_ecmodel = True
 
+    # ── FR-05: populate model.ec metadata for GECKO YAML I/O ─────────────────
+    # Design Ref: §3.1 — provenance of kcats / enzyme properties that round-trip
+    # to GECKO-compatible YAML. Populated AFTER all Stage 1/2 mutations so the
+    # reaction IDs recorded here match the final cobra model.
+    _populate_ec_structure(ec_data)
+
     # Reactions with GPR that have no kcat constraint at all
     enzyme_rxn_ids = {r.id for r in ecmodel.reactions if r.genes
                       and not r.id.startswith(("usage_prot_", "prot_pool"))}
@@ -641,6 +647,86 @@ def build_ecmodel(model: cobra.Model,
     unconstrained = sorted(enzyme_rxn_ids - constrained)
 
     return ecmodel, unconstrained, sorted(missing_mw_prots)
+
+
+# ── FR-05: populate ec_data.ec from kcat_entries + uniprot_data ──────────────
+
+def _populate_ec_structure(ec_data: ECModelData) -> None:
+    """Fill ``ec_data.ec`` with GECKO 3.0 ``model.ec`` metadata.
+
+    Design Ref: §3.1 — per-reaction rows are derived from ``kcat_entries``
+    and expanded through the REV / isozyme split maps so each row's
+    ``rxn_id`` matches the post-build cobra reaction. Enzyme rows come
+    from ``uniprot_data`` and carry MW/sequence for YAML export.
+
+    Entries whose ``rxns`` list is empty (pure gene-matching kcats) are
+    skipped — they contribute to the cobra model constraints but not to
+    the explicit metadata row. This is an MVP limitation noted in
+    ``gecko3-compliance.design.md`` Section 11.
+    """
+    from cnapy.ecmodel.ec_structure import EcStructure, _triples_to_csr
+
+    ec = EcStructure(gecko_light=ec_data.gecko_light)
+
+    # ── enzymes ───────────────────────────────────────────────────────────
+    enz_index: dict[str, int] = {}
+    for uid, info in ec_data.uniprot_data.items():
+        enz_index[uid] = len(ec.enzymes)
+        ec.enzymes.append(uid)
+        ec.genes.append(str(info.get("gene", "")))
+        ec.mw.append(float(info.get("mw_da", 0.0)))
+        ec.sequence.append(str(info.get("sequence", "")))
+        ec.concs.append(0.0)
+
+    # ── reactions (expanded through REV + isozyme split maps) ────────────
+    # Design Ref: §3.1 — one row per (post-split) rxn_id. If multiple
+    # kcat_entries target the same split variant (e.g. two isozymes of the
+    # same original reaction), first-seen wins; this keeps ``ec.rxns``
+    # unique so YAML round-trip has stable ordering.
+    rows: list[tuple[str, float, str, str, str, dict[str, int]]] = []
+    seen_rxns: set[str] = set()
+    for entry in ec_data.kcat_entries:
+        rxn_ids = entry.get("rxns") or []
+        if not rxn_ids:
+            continue  # gene-matching entries don't carry explicit targets
+        kcat = float(entry.get("kcat", 0.0))
+        stoicho_map = {
+            str(p): int(s)
+            for p, s in zip(entry.get("proteins", []),
+                            entry.get("stoicho", []))
+        }
+        notes = str(entry.get("notes", ""))
+
+        for original_id in rxn_ids:
+            expanded = ec_data.split_rxn_map.get(original_id, [original_id])
+            final_ids: list[str] = []
+            for rid in expanded:
+                iso = ec_data.isozyme_split_map.get(rid)
+                if iso:
+                    final_ids.extend(iso)
+                else:
+                    final_ids.append(rid)
+            for rid in final_ids:
+                if rid in seen_rxns:
+                    continue
+                seen_rxns.add(rid)
+                rows.append((rid, kcat, "custom", notes, "", stoicho_map))
+
+    triples: list[tuple[int, int, float]] = []
+    for i, (rid, kcat, source_label, notes, eccodes, stoicho_map) in enumerate(rows):
+        ec.rxns.append(rid)
+        ec.kcat.append(kcat)
+        ec.source.append(source_label)
+        ec.notes.append(notes)
+        ec.eccodes.append(eccodes)
+        for prot, count in stoicho_map.items():
+            j = enz_index.get(prot)
+            if j is not None:
+                triples.append((i, j, float(count)))
+
+    ec.rxnEnzMat = _triples_to_csr(triples, len(rows), len(ec.enzymes))
+
+    ec_data.ec = ec
 
 
 # ── revert ────────────────────────────────────────────────────────────────────

@@ -311,6 +311,21 @@ class _BuildPage(QWidget):
         btn_row.addStretch()
         layout.addLayout(btn_row)
 
+        # ── FR-19: GECKO YAML save / load ────────────────────────────────────
+        # Design Ref: §5.1 — export an active ecModel to a GECKO-compatible
+        # YAML file, or import one from the SysBioChalmers distributions.
+        yaml_row = QHBoxLayout()
+        self.save_yaml_btn = QPushButton("Save ecModel (YAML)…")
+        self.save_yaml_btn.setAutoDefault(False)
+        self.save_yaml_btn.clicked.connect(self._save_yaml)
+        self.load_yaml_btn = QPushButton("Load ecModel (YAML)…")
+        self.load_yaml_btn.setAutoDefault(False)
+        self.load_yaml_btn.clicked.connect(self._load_yaml)
+        yaml_row.addWidget(self.save_yaml_btn)
+        yaml_row.addWidget(self.load_yaml_btn)
+        yaml_row.addStretch()
+        layout.addLayout(yaml_row)
+
     def _update_pool_label(self):
         b = self.ptot_spin.value() * self.f_spin.value() * self.sigma_spin.value() * 1000
         self.pool_label.setText(f"Pool UB: {b:.4f} mg/gDCW")
@@ -325,6 +340,8 @@ class _BuildPage(QWidget):
         is_ec = ec.is_ecmodel
         self.convert_btn.setEnabled(not is_ec)
         self.revert_btn.setEnabled(is_ec)
+        self.save_yaml_btn.setEnabled(is_ec)
+        self.load_yaml_btn.setEnabled(True)
         for w in [self.kcat_btn, self.uni_btn, self.sigma_spin,
                   self.f_spin, self.ptot_spin, self.full_radio, self.light_radio]:
             w.setEnabled(not is_ec)
@@ -436,6 +453,101 @@ class _BuildPage(QWidget):
         self.dialog._update_status_bar()
         self.dialog.parent().centralWidget().update(rebuild_all_tabs=True)
         QMessageBox.information(self, "Done", "Model reverted to the original GEM.")
+
+    @Slot()
+    def _save_yaml(self):
+        """FR-19: export the active ecModel to a GECKO-compatible YAML file."""
+        from cnapy.ecmodel.exceptions import EcYamlError
+        from cnapy.ecmodel.yaml_io import save_ecmodel
+
+        ec = self.appdata.project.ec_model_data
+        if not ec.is_ecmodel:
+            QMessageBox.warning(self, "Not an ecModel",
+                                "Please build an ecModel before saving YAML.")
+            return
+
+        dialog = QFileDialog(self)
+        path, _ = dialog.getSaveFileName(
+            self, "Save ecModel as YAML",
+            self.appdata.work_directory,
+            "GECKO YAML (*.yml *.yaml);;All files (*)",
+        )
+        if not path:
+            return
+        if not path.lower().endswith((".yml", ".yaml")):
+            path += ".yml"
+
+        ecmodel = self.appdata.project.cobra_py_model
+        self.dialog.setCursor(Qt.BusyCursor)
+        try:
+            save_ecmodel(ecmodel, ec, path)
+        except EcYamlError as exc:
+            self.dialog.setCursor(Qt.ArrowCursor)
+            QMessageBox.critical(self, "Save failed", str(exc))
+            return
+        except Exception as exc:   # pragma: no cover — unexpected I/O
+            self.dialog.setCursor(Qt.ArrowCursor)
+            QMessageBox.critical(self, "Save failed", f"Unexpected error: {exc}")
+            return
+        self.dialog.setCursor(Qt.ArrowCursor)
+        QMessageBox.information(
+            self, "YAML saved",
+            f"ecModel exported to:\n{path}\n\n"
+            "This file is compatible with GECKO 3.0 loaders "
+            "(SysBioChalmers/GECKO, MATLAB loadEcModel).",
+        )
+
+    @Slot()
+    def _load_yaml(self):
+        """FR-19: import a GECKO YAML ecModel and replace the current model."""
+        from cnapy.ecmodel.exceptions import EcYamlError
+        from cnapy.ecmodel.yaml_io import load_ecmodel
+
+        dialog = QFileDialog(self)
+        path, _ = dialog.getOpenFileName(
+            self, "Load ecModel from YAML",
+            self.appdata.work_directory,
+            "GECKO YAML (*.yml *.yaml);;All files (*)",
+        )
+        if not path:
+            return
+
+        if self.appdata.project.ec_model_data.is_ecmodel:
+            ret = QMessageBox.question(
+                self, "Replace current ecModel?",
+                "Loading a YAML ecModel will replace the current project model.\n"
+                "Unsaved changes will be lost. Continue?",
+                QMessageBox.Yes | QMessageBox.No, QMessageBox.No,
+            )
+            if ret != QMessageBox.Yes:
+                return
+
+        self.dialog.setCursor(Qt.BusyCursor)
+        try:
+            model, ec_data = load_ecmodel(path)
+        except EcYamlError as exc:
+            self.dialog.setCursor(Qt.ArrowCursor)
+            QMessageBox.critical(self, "Load failed", str(exc))
+            return
+        except Exception as exc:   # pragma: no cover — unexpected I/O
+            self.dialog.setCursor(Qt.ArrowCursor)
+            QMessageBox.critical(self, "Load failed", f"Unexpected error: {exc}")
+            return
+        self.dialog.setCursor(Qt.ArrowCursor)
+
+        self.appdata.project.cobra_py_model = model
+        self.appdata.project.ec_model_data = ec_data
+        self.appdata.project.store_original_bounds()
+        self._refresh()
+        self.dialog._refresh_nav()
+        self.dialog._update_status_bar()
+        self.dialog.parent().centralWidget().update(rebuild_all_tabs=True)
+        QMessageBox.information(
+            self, "YAML loaded",
+            f"Loaded ecModel from:\n{path}\n\n"
+            f"Reactions: {len(model.reactions)}, "
+            f"Enzymes: {ec_data.ec.n_enzymes()}.",
+        )
 
 
 # ── Page 1: Enzyme Usage ──────────────────────────────────────────────────────

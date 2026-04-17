@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from cnapy.ecmodel.ec_structure import EcStructure
+
 if TYPE_CHECKING:
     import cobra
 
@@ -73,6 +75,10 @@ class ECModelData:
     protein_pool_met_id: str = "prot_pool"
     protein_pool_rxn_id: str = "prot_pool_exchange"
 
+    # ── FR-05 GECKO 3.0 model.ec metadata ─────────────────────────────────────
+    # Design Ref: §3.1 — populated by build_ecmodel and persisted to YAML/.cna.
+    ec: EcStructure = field(default_factory=EcStructure)
+
     # ──────────────────────────────────────────────────────────────────────────
     def pool_bound(self) -> float:
         """Upper bound for protein pool exchange (mg/gDCW)."""
@@ -105,6 +111,7 @@ class ECModelData:
             "original_reaction_ids": self.original_reaction_ids,
             "split_rxn_map": self.split_rxn_map,
             "isozyme_split_map": self.isozyme_split_map,
+            "ec": self.ec.to_dict(),
         }
 
     @classmethod
@@ -125,6 +132,7 @@ class ECModelData:
         obj.original_reaction_ids = data.get("original_reaction_ids", [])
         obj.split_rxn_map = data.get("split_rxn_map", {})
         obj.isozyme_split_map = data.get("isozyme_split_map", {})
+        obj.ec = EcStructure.from_dict(data.get("ec"))
         return obj
 
     @classmethod
@@ -176,3 +184,4 @@ class ECModelData:
         self.original_reaction_ids.clear()
         self.split_rxn_map.clear()
         self.isozyme_split_map.clear()
+        self.ec = EcStructure()

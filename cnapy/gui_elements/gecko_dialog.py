@@ -81,7 +81,7 @@ class GeckoDialog(QDialog):
 
         # customKcats file
         kcat_row = QHBoxLayout()
-        kcat_row.addWidget(QLabel("customKcats file:"))
+        kcat_row.addWidget(QLabel("Enzyme kcat data:"))
         self.kcat_edit = QLineEdit()
         self.kcat_edit.setPlaceholderText("TSV / CSV / Excel with kcat data")
         self.kcat_edit.setReadOnly(True)
@@ -94,7 +94,7 @@ class GeckoDialog(QDialog):
 
         # uniprot file
         uni_row = QHBoxLayout()
-        uni_row.addWidget(QLabel("UniProt data file:"))
+        uni_row.addWidget(QLabel("Enzyme MW data:"))
         self.uni_edit = QLineEdit()
         self.uni_edit.setPlaceholderText("TSV / CSV / Excel with Entry, Mass, Sequence…")
         self.uni_edit.setReadOnly(True)

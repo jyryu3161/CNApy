@@ -34,23 +34,27 @@ def parse_customkcats_file(path: str) -> list[dict]:
     Column names are case-insensitive. Missing optional columns default to
     empty values and do not cause errors.
 
-    REQUIRED (at least one combination):
-        kcat                 — turnover number (1/s), must be > 0; rows with
-                               missing or non-positive kcat are skipped
-        proteins             — UniProt ID(s) of the catalysing enzyme;
-                               multiple subunits separated by '+' (e.g. P0A+P1B)
-        OR rxns              — reaction ID(s) in the model to constrain directly
-                               (comma-separated); used when proteins is absent
+    REQUIRED:
+        kcat        — turnover number (1/s), must be > 0
+        proteins    — UniProt ID(s) of the catalysing enzyme; must match
+                      'Entry' in the UniProt file (for MW lookup).
+                      Use '+' for complexes (e.g. P0A9P0+P12345).
+        rxns        — reaction ID(s) in the model, comma-separated.
+                      Must match the loaded model's reaction identifiers
+                      (e.g. MAR03905 for Human-GEM, PFK for BiGG models).
+
+    NOTE: if 'rxns' is omitted, reactions are found via proteins → gene
+    name (from UniProt file) → model GPR. This only works when gene names
+    in the UniProt file match the model's gene ID format. When they differ
+    (e.g. gene symbols vs Ensembl IDs), provide 'rxns' explicitly.
 
     OPTIONAL:
-        stoicho              — subunit copy number per protein ('+'-separated);
-                               defaults to 1 for each protein if omitted
-        genes                — gene ID(s) for GPR-based reaction matching;
-                               fallback when proteins and rxns are both absent
-        gene_name            — short gene name; informational only, not used
-                               in calculations
-        notes                — free-text comment / data source; not used in
-                               calculations
+        stoicho     — subunit copy number per protein ('+'-separated;
+                      default 1)
+        genes       — gene ID(s) matching the model's gene identifiers;
+                      used as additional targets for reaction matching
+        gene_name   — informational only, not used in calculations
+        notes       — free-text comment; not used in calculations
 
     Returns list of dicts with keys:
         proteins (list[str]), genes (list[str]), gene_name (str),
@@ -132,7 +136,10 @@ def parse_uniprot_file(path: str) -> dict:
     OPTIONAL:
         Gene Names           — gene name for display and GPR-based reaction
                                matching (e.g. "thrA"); any column whose name
-                               contains both "gene" and "name" is accepted
+                               contains both "gene" and "name" is accepted.
+                               NOTE: for reaction matching via kcat 'proteins',
+                               these must use the same ID format as the model's
+                               genes (e.g. gene symbols or Ensembl IDs).
         Sequence             — amino acid sequence; only needed for UniKP
                                kcat prediction; not used in GECKO calculations
         EC number            — enzyme classification number; stored but not

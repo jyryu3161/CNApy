@@ -122,7 +122,7 @@ class _BuildPage(QWidget):
         layout = QVBoxLayout(self)
 
         # ── kcat file ────────────────────────────────────────────────────────
-        kcat_group = QGroupBox("kcat File  (customKcats)")
+        kcat_group = QGroupBox("Enzyme kcat Data")
         kfl = QVBoxLayout()
 
         kcat_row = QHBoxLayout()
@@ -140,22 +140,25 @@ class _BuildPage(QWidget):
         kfl.addWidget(self.kcat_status)
 
         kcat_guide = QLabel(
-            "<b>Required columns</b> (column names are case-insensitive):<br>"
+            "<b>Required columns</b> (case-insensitive):<br>"
             "&nbsp;&nbsp;• <tt>kcat</tt> — turnover number in 1/s, must be &gt; 0<br>"
-            "&nbsp;&nbsp;• <tt>proteins</tt> — UniProt ID(s); use <tt>+</tt> for enzyme complexes "
-            "<i>(e.g. P0A9P0+P12345)</i><br>"
-            "&nbsp;&nbsp;&nbsp;&nbsp;<b>or</b> <tt>rxns</tt> — model reaction ID(s), comma-separated "
-            "<i>(when proteins is absent)</i><br>"
+            "&nbsp;&nbsp;• <tt>proteins</tt> — UniProt ID(s); must match <tt>Entry</tt> in the UniProt file "
+            "<i>(for MW lookup; use <tt>+</tt> for complexes)</i><br>"
+            "&nbsp;&nbsp;• <tt>rxns</tt> — reaction ID(s) matching the loaded model "
+            "<i>(e.g. MAR03905 for Human-GEM, PFK for BiGG)</i><br>"
             "<b>Optional columns</b>:<br>"
             "&nbsp;&nbsp;• <tt>stoicho</tt> — subunit copies per protein, <tt>+</tt>-separated "
             "<i>(default: 1)</i><br>"
-            "&nbsp;&nbsp;• <tt>genes</tt> — gene IDs for GPR-based reaction matching<br>"
+            "&nbsp;&nbsp;• <tt>genes</tt> — gene IDs matching the model's gene identifiers<br>"
+            "<br>"
+            "<span style='color:#b06000'>&#9888; If <tt>rxns</tt> is omitted, reactions are matched via "
+            "UniProt gene names &rarr; model GPR. This fails when gene ID formats "
+            "differ (e.g. gene symbols vs Ensembl IDs).</span><br>"
             "<br>"
             "<b>Example</b> (TSV/CSV):<br>"
-            "<tt>proteins&nbsp;&nbsp;&nbsp;&nbsp;kcat&nbsp;&nbsp;&nbsp;rxns&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stoicho<br>"
-            "P0A9P0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;45.2&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;1<br>"
-            "P0A9P0+P1B2&nbsp;12.0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;2+1<br>"
-            "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;8.5&nbsp;&nbsp;&nbsp;PFK,PGI</tt>"
+            "<tt>proteins&nbsp;&nbsp;&nbsp;&nbsp;kcat&nbsp;&nbsp;&nbsp;rxns&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;stoicho<br>"
+            "P0A9P0&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;45.2&nbsp;&nbsp;&nbsp;MAR03905&nbsp;&nbsp;&nbsp;&nbsp;1<br>"
+            "P0A9P0+P1B2&nbsp;12.0&nbsp;&nbsp;&nbsp;MAR04097&nbsp;&nbsp;&nbsp;&nbsp;2+1</tt>"
         )
         kcat_guide.setTextFormat(Qt.RichText)
         kcat_guide.setWordWrap(True)
@@ -173,7 +176,7 @@ class _BuildPage(QWidget):
         layout.addWidget(kcat_group)
 
         # ── UniProt file ──────────────────────────────────────────────────────
-        uni_group = QGroupBox("UniProt Data File")
+        uni_group = QGroupBox("Enzyme Molecular Weight Data")
         ufl = QVBoxLayout()
 
         uni_row = QHBoxLayout()
@@ -192,7 +195,8 @@ class _BuildPage(QWidget):
 
         uni_guide = QLabel(
             "<b>Required columns</b>:<br>"
-            "&nbsp;&nbsp;• <tt>Entry</tt> — UniProt accession ID <i>(e.g. P0A9P0)</i><br>"
+            "&nbsp;&nbsp;• <tt>Entry</tt> — UniProt accession ID <i>(e.g. P0A9P0)</i>; "
+            "must match <tt>proteins</tt> in the kcat file<br>"
             "&nbsp;&nbsp;• <tt>Mass</tt> — molecular weight in Da <i>(e.g. 86376)</i>; "
             "also accepted: <tt>Molecular weight</tt>, <tt>MW</tt><br>"
             "<b>Optional columns</b>:<br>"

@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import pickle
 import traceback
 import xml.etree.ElementTree as ET
@@ -1744,12 +1745,41 @@ class MainWindow(QMainWindow):
                         self.appdata.project.comp_values = {k: tuple(v) for k, v in comp_data.get("values", {}).items()}
                         self.appdata.project.comp_values_type = comp_data.get("type", 0)
 
-                # Load ecmodel_data if present
+                # Load ecmodel_data if present.
+                # Design Ref: §5.1 FR-20 — v1 .cna files are auto-migrated to the
+                # GECKO 3.0 sign convention. The original file is backed up to
+                # ``{filename}.bak`` and the user is shown a one-shot notice.
                 from cnapy.ecmodel.ecmodel_data import ECModelData as _ECModelData
                 ecmodel_data_path = temp_dir.name + "/ecmodel_data.json"
                 if os.path.exists(ecmodel_data_path):
                     with open(ecmodel_data_path) as fp:
-                        self.appdata.project.ec_model_data = _ECModelData.from_dict(json.load(fp))
+                        ec_data_dict = json.load(fp)
+                    ec_data, was_migrated = _ECModelData.from_dict_with_migration(
+                        ec_data_dict, cobra_py_model,
+                    )
+                    self.appdata.project.ec_model_data = ec_data
+
+                    if was_migrated:
+                        # v1 → v2 migrated the cobra model in place; refresh the
+                        # original-bounds snapshot so undo/redo reflect v2.
+                        self.appdata.project.store_original_bounds()
+
+                        backup_path = filename + ".bak"
+                        try:
+                            if not os.path.exists(backup_path):
+                                shutil.copy2(filename, backup_path)
+                            backup_info = f"원본 파일은 `{backup_path}`로 백업되었습니다."
+                        except OSError as exc:
+                            backup_info = (
+                                f"원본 백업을 만들지 못했습니다 ({exc}). "
+                                "저장 전에 수동으로 원본을 보관해 두세요."
+                            )
+                        QMessageBox.information(
+                            self,
+                            "ecModel 마이그레이션",
+                            "기존 CNApy 프로젝트의 ecModel 부호 규약이 GECKO 3.0 "
+                            "표준으로 업데이트되었습니다.\n\n" + backup_info,
+                        )
                 else:
                     self.appdata.project.ec_model_data = _ECModelData()
 

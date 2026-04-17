@@ -62,6 +62,7 @@ from cnapy.ecmodel.ecmodel_builder import (
     revert_to_gem,
     run_fba_on_ecmodel,
 )
+from cnapy.ecmodel.expansion import usage_capacity
 from cnapy.utils import no_scroll
 
 
@@ -526,7 +527,10 @@ class _UsagePage(QWidget):
     def _populate(self, ecmodel, sol, ec):
         try:
             pool_rxn = ecmodel.reactions.get_by_id(ec.protein_pool_rxn_id)
-            pool_ub   = pool_rxn.upper_bound
+            # Design Ref: §5.1 FR-08 — v2 convention: pool flux is negative,
+            # so capacity is |lower_bound|. ``usage_capacity`` is sign-agnostic
+            # (handles v1 too) for defensive reads from unmigrated data.
+            pool_ub   = usage_capacity(pool_rxn)
             pool_used = abs(sol.fluxes.get(ec.protein_pool_rxn_id, 0.0))
             pool_pct  = (pool_used / pool_ub * 100) if pool_ub > 0 else 0.0
             self.pool_ub_lbl.setText(f"Pool UB: {pool_ub:.2f}")
@@ -1217,7 +1221,8 @@ class GeckoUnifiedDialog(QDialog):
             try:
                 model = self.appdata.project.cobra_py_model
                 pool_rxn = model.reactions.get_by_id(ec.protein_pool_rxn_id)
-                pool_ub   = pool_rxn.upper_bound
+                # Design Ref: §5.1 FR-08 — v2 convention (see _UsagePage).
+                pool_ub   = usage_capacity(pool_rxn)
                 pool_used = abs(solution.fluxes.get(ec.protein_pool_rxn_id, 0.0))
                 self.status_pool_lbl.setText(
                     f"Pool: {pool_used:.2f} / {pool_ub:.2f} mg/gDCW")

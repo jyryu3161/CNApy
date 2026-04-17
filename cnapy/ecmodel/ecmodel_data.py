@@ -1,6 +1,15 @@
 """ECModelData: data class for GECKO enzyme-constrained model metadata."""
 
+from __future__ import annotations
+
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    import cobra
+
+# Design Ref: §3.2 — current schema version. v1 files get auto-migrated on load.
+CURRENT_SCHEMA_VERSION = 2
 
 
 @dataclass
@@ -25,6 +34,11 @@ class ECModelData:
     the ecModel state survives save/load.
     """
 
+    # ── schema version ──────────────────────────────────────────────────────
+    # Design Ref: §3.2 FR-20 — absent or 1 in old .cna files triggers automatic
+    # v1→v2 sign-convention flip on load.
+    schema_version: int = CURRENT_SCHEMA_VERSION
+
     # ── status ──────────────────────────────────────────────────────────────
     is_ecmodel: bool = False
     gecko_light: bool = False   # True → light formulation (no per-enzyme reactions)
@@ -48,8 +62,12 @@ class ECModelData:
     enzyme_rxn_ids: dict = field(default_factory=dict)
     # original reaction IDs before any splitting
     original_reaction_ids: list = field(default_factory=list)
-    # mapping { original_rxn_id -> [split_rxn_ids] }  (only populated when splitting occurred)
+    # mapping { original_rxn_id -> [split_rxn_ids] }  — reversible fwd/rev split
     split_rxn_map: dict = field(default_factory=dict)
+    # mapping { original_rxn_id -> [_EXP_N ids] }     — isozyme split (FR-04)
+    # Design Ref: §2.1 — stored separately from split_rxn_map so reversible
+    # and isozyme splits don't collide on the same key.
+    isozyme_split_map: dict = field(default_factory=dict)
 
     # ── fixed identifiers ─────────────────────────────────────────────────────
     protein_pool_met_id: str = "prot_pool"
@@ -63,6 +81,7 @@ class ECModelData:
     def to_dict(self) -> dict:
         """Serialise to a plain dict for JSON storage."""
         return {
+            "schema_version": self.schema_version,
             "is_ecmodel": self.is_ecmodel,
             "gecko_light": self.gecko_light,
             "sigma": self.sigma,
@@ -85,12 +104,15 @@ class ECModelData:
             "enzyme_rxn_ids": self.enzyme_rxn_ids,
             "original_reaction_ids": self.original_reaction_ids,
             "split_rxn_map": self.split_rxn_map,
+            "isozyme_split_map": self.isozyme_split_map,
         }
 
     @classmethod
     def from_dict(cls, data: dict) -> "ECModelData":
-        """Deserialise from JSON storage."""
+        """Deserialise from JSON storage. Keeps the on-disk schema_version."""
         obj = cls()
+        # schema_version defaults to 1 for files written before FR-20.
+        obj.schema_version = int(data.get("schema_version", 1))
         obj.is_ecmodel = data.get("is_ecmodel", False)
         obj.gecko_light = data.get("gecko_light", False)
         obj.sigma = data.get("sigma", 0.5)
@@ -102,7 +124,48 @@ class ECModelData:
         obj.enzyme_rxn_ids = data.get("enzyme_rxn_ids", {})
         obj.original_reaction_ids = data.get("original_reaction_ids", [])
         obj.split_rxn_map = data.get("split_rxn_map", {})
+        obj.isozyme_split_map = data.get("isozyme_split_map", {})
         return obj
+
+    @classmethod
+    def from_dict_with_migration(
+        cls, data: dict, cobra_model: "cobra.Model | None" = None,
+    ) -> "tuple[ECModelData, bool]":
+        """Load from dict and apply any schema migrations.
+
+        Design Ref: §3.2 FR-20 — v1 files (missing or schema_version == 1)
+        get their sign convention flipped via
+        :func:`cnapy.ecmodel.expansion.flip_reaction_signs_v1_to_v2`. The
+        cobra model (if given) is modified in place to reflect the new
+        sign convention.
+
+        Returns
+        -------
+        (ec_data, was_migrated) : the loaded/upgraded ECModelData and a bool
+            indicating whether migration ran. Callers can use this to surface
+            a user-facing notice and make a ``.bak`` backup of the source.
+        """
+        obj = cls.from_dict(data)
+        was_migrated = False
+        if obj.schema_version < CURRENT_SCHEMA_VERSION:
+            obj.upgrade(cobra_model)
+            was_migrated = True
+        return obj, was_migrated
+
+    def upgrade(self, cobra_model: "cobra.Model | None" = None) -> None:
+        """Upgrade this ECModelData (and its cobra_model) to the current schema.
+
+        v1 → v2: flip sign convention on ``usage_prot_*`` and
+        ``prot_pool_exchange`` reactions (FR-07 + FR-08).
+        """
+        if self.schema_version >= CURRENT_SCHEMA_VERSION:
+            return
+
+        if self.schema_version == 1:
+            if cobra_model is not None and self.is_ecmodel:
+                from cnapy.ecmodel.expansion import flip_reaction_signs_v1_to_v2
+                flip_reaction_signs_v1_to_v2(cobra_model)
+            self.schema_version = 2
 
     def reset(self):
         """Reset to default (non-ecModel) state."""
@@ -112,3 +175,4 @@ class ECModelData:
         self.enzyme_rxn_ids.clear()
         self.original_reaction_ids.clear()
         self.split_rxn_map.clear()
+        self.isozyme_split_map.clear()

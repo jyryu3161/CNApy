@@ -22,6 +22,13 @@ from typing import TYPE_CHECKING
 import cobra
 import pandas as pd
 
+from cnapy.ecmodel.expansion import (
+    clear_pseudoreaction_gpr,
+    expand_isozymes,
+    set_usage_capacity,
+    usage_capacity,
+)
+
 if TYPE_CHECKING:
     from cnapy.ecmodel.ecmodel_data import ECModelData
 
@@ -211,32 +218,57 @@ def _build_gene_to_uniprot(ec_data: ECModelData) -> dict:
     return g2u
 
 
+def _is_variant_of(rxn_id: str, base_id: str) -> bool:
+    """True if rxn_id is base_id, base_id_REV, base_id_EXP_N, or base_id_REV_EXP_N.
+
+    Design Ref: §3.4 — supports the GECKO 3.0 reaction naming post-expansion
+    so user-supplied customKcats (with original IDs) still target split variants.
+    """
+    if rxn_id == base_id or rxn_id == base_id + "_REV":
+        return True
+    for prefix in (base_id, base_id + "_REV"):
+        if rxn_id.startswith(prefix + "_EXP_"):
+            tail = rxn_id[len(prefix) + len("_EXP_"):]
+            if tail.isdigit():
+                return True
+    return False
+
+
 def _reactions_for_entry(model: cobra.Model, entry: dict,
                           gene_to_uniprot: dict) -> list[str]:
     """Return the model reaction IDs matched by a KcatEntry."""
     rxn_ids = []
 
+    # Build the genes that identify this entry's enzyme(s) (for GPR filtering).
+    target_genes: set[str] = set()
+    for g in entry["genes"]:
+        if g:
+            target_genes.add(g)
+    for prot in entry["proteins"]:
+        for g, u in gene_to_uniprot.items():
+            if u == prot:
+                target_genes.add(g)
+
     # Priority 1: explicit reaction IDs in entry["rxns"]
     if entry["rxns"]:
         for rid in entry["rxns"]:
             for rxn in model.reactions:
-                if rxn.id == rid or rxn.id == rid + "_REV":
-                    rxn_ids.append(rxn.id)
+                if not _is_variant_of(rxn.id, rid):
+                    continue
+                # When the entry identifies enzymes (proteins/genes), restrict
+                # matching to variants whose GPR contains at least one of
+                # those genes. This is essential for isozyme-split reactions:
+                # a kcat entry for isozyme A should not touch the _EXP_N
+                # variant catalysed only by isozyme B.
+                if target_genes:
+                    rxn_gene_ids = {g.id for g in rxn.genes}
+                    if not (rxn_gene_ids & target_genes):
+                        continue
+                rxn_ids.append(rxn.id)
         return list(dict.fromkeys(rxn_ids))  # deduplicate, preserve order
 
-    # Priority 2: match by proteins → genes → reactions
-    if entry["proteins"]:
-        # For each protein, find the gene, then find reactions with that gene
-        target_genes = set()
-        for prot in entry["proteins"]:
-            # direct gene from kcat entry
-            for g, u in gene_to_uniprot.items():
-                if u == prot:
-                    target_genes.add(g)
-            # also try genes field of the same entry
-        for g in entry["genes"]:
-            target_genes.add(g)
-
+    # Priority 2: match by proteins → genes → reactions via GPR
+    if target_genes:
         for rxn in model.reactions:
             rxn_gene_ids = {g.id for g in rxn.genes}
             if rxn_gene_ids & target_genes:
@@ -321,7 +353,11 @@ def _split_reversible_reactions(ecmodel: cobra.Model, ec_data: ECModelData):
 
 
 def _add_protein_pool(ecmodel: cobra.Model, ec_data: ECModelData):
-    """Add prot_pool pseudo-metabolite and exchange reaction."""
+    """Add prot_pool pseudo-metabolite and exchange reaction.
+
+    Design Ref: §3.3 FR-08 — GECKO 3.0 sign convention.
+        stoich {prot_pool: -1}, lb = -pool_bound, ub = 0
+    """
     prot_pool_met = cobra.Metabolite(
         id=ec_data.protein_pool_met_id,
         name="Protein pool",
@@ -332,18 +368,21 @@ def _add_protein_pool(ecmodel: cobra.Model, ec_data: ECModelData):
     pool_rxn = cobra.Reaction(
         id=ec_data.protein_pool_rxn_id,
         name="Protein pool exchange",
-        lower_bound=0.0,
-        upper_bound=ec_data.pool_bound(),
+        lower_bound=-ec_data.pool_bound(),
+        upper_bound=0.0,
     )
-    pool_rxn.add_metabolites({prot_pool_met: 1.0})
+    pool_rxn.add_metabolites({prot_pool_met: -1.0})
     ecmodel.add_reactions([pool_rxn])
 
 
 def _ensure_enzyme_met_and_usage(ecmodel: cobra.Model, ec_data: ECModelData,
                                   uniprot_id: str):
-    """
-    Add prot_{uniprot_id} pseudo-metabolite and usage_prot_{uniprot_id}
-    reaction (if not already present).  Only used for the full ecModel.
+    """Add prot_{uniprot_id} pseudo-metabolite and usage_prot_{uniprot_id}.
+
+    Design Ref: §3.3 FR-07 — GECKO 3.0 sign convention.
+        usage stoich {prot_i: -1, prot_pool: +1}, lb=-1000, ub=0
+
+    Only used for the full ecModel.
     """
     met_id = f"prot_{uniprot_id}"
     rxn_id = f"usage_prot_{uniprot_id}"
@@ -363,12 +402,12 @@ def _ensure_enzyme_met_and_usage(ecmodel: cobra.Model, ec_data: ECModelData,
     usage_rxn = cobra.Reaction(
         id=rxn_id,
         name=f"Enzyme usage {uniprot_id}",
-        lower_bound=0.0,
-        upper_bound=1000.0,
+        lower_bound=-1000.0,
+        upper_bound=0.0,
     )
     usage_rxn.add_metabolites({
-        prot_pool_met: -1.0,
-        enz_met:       1.0,
+        prot_pool_met: 1.0,    # produced (v2 convention)
+        enz_met:       -1.0,   # consumed (v2 convention)
     })
     ecmodel.add_reactions([usage_rxn])
 
@@ -539,9 +578,22 @@ def build_ecmodel(model: cobra.Model,
 
     gene_to_uniprot = _build_gene_to_uniprot(ec_data)
 
-    # ── Stage 1: Split reversible enzyme-catalysed reactions ──────────────────
+    # ── Stage 1 Box 1 Step 1 (FR-01): clear GPR on pseudoreactions ───────────
+    # Design Ref: §2.2 — Must run before any splitting so biomass/ATPM with
+    # accidentally-assigned GPR don't get _REV or _EXP_N variants and don't
+    # draw from the protein pool.
+    clear_pseudoreaction_gpr(ecmodel)
+
+    # ── Stage 1 Box 1 Step 4: split reversible enzyme-catalysed reactions ────
     if not ec_data.gecko_light:
         _split_reversible_reactions(ecmodel, ec_data)
+
+    # ── Stage 1 Box 1 Step 5 (FR-04): split isozyme-catalysed reactions ──────
+    # Design Ref: §3.4 — `(g1 and g2) or g3` → `_EXP_1`, `_EXP_2`. Each
+    # variant gets a single isozyme (or complex), eliminating the AND-vs-OR
+    # bug where separate kcat entries for the same rxn forced BOTH enzymes.
+    if not ec_data.gecko_light:
+        expand_isozymes(ecmodel, ec_data)
 
     # ── Stage 1 cont.: Add protein pool ──────────────────────────────────────
     _add_protein_pool(ecmodel, ec_data)
@@ -564,9 +616,10 @@ def build_ecmodel(model: cobra.Model,
 
         unconstrained_set.update(failed)
 
-    # ── Stage 3: Set protein pool bound ──────────────────────────────────────
+    # ── Stage 3: Set protein pool bound (v2 convention: lb=-bound, ub=0) ─────
     pool_rxn = ecmodel.reactions.get_by_id(ec_data.protein_pool_rxn_id)
-    pool_rxn.upper_bound = ec_data.pool_bound()
+    pool_rxn.lower_bound = -ec_data.pool_bound()
+    pool_rxn.upper_bound = 0.0
 
     ec_data.is_ecmodel = True
 
@@ -622,6 +675,52 @@ def revert_to_gem(ecmodel: cobra.Model, ec_data: ECModelData) -> cobra.Model:
     except KeyError:
         pass
 
+    # ── merge isozyme _EXP_N variants back into the original reaction ────────
+    # Design Ref: §3.4 — inverse of FR-04 expand_isozymes. Pick the first
+    # variant as template for stoichiometry/bounds, combine all variants'
+    # GPRs with ' or ', then remove every variant.
+    isozyme_map = getattr(ec_data, "isozyme_split_map", {}) or {}
+    for orig_id, exp_ids in isozyme_map.items():
+        template = None
+        rule_parts: list[str] = []
+        for exp_id in exp_ids:
+            try:
+                variant = gem.reactions.get_by_id(exp_id)
+            except KeyError:
+                continue
+            if template is None:
+                template = variant
+            gr = variant.gene_reaction_rule.strip()
+            if gr:
+                rule_parts.append(f"({gr})" if " and " in gr else gr)
+
+        if template is None:
+            continue  # All variants already gone (shouldn't happen).
+
+        restored = cobra.Reaction(
+            id=orig_id,
+            name=template.name,
+            subsystem=getattr(template, "subsystem", "") or "",
+            lower_bound=template.lower_bound,
+            upper_bound=template.upper_bound,
+        )
+        # Only metabolic stoichiometry — enzyme coefficients were already
+        # zeroed out above.
+        restored.add_metabolites({
+            m: c for m, c in template.metabolites.items()
+            if not m.id.startswith("prot_")
+        })
+        try:
+            restored.annotation = dict(template.annotation)
+        except Exception:  # noqa: BLE001
+            pass
+        gem.add_reactions([restored])
+        restored.gene_reaction_rule = " or ".join(rule_parts)
+
+        to_drop = [gem.reactions.get_by_id(e) for e in exp_ids
+                   if e in gem.reactions]
+        gem.remove_reactions(to_drop, remove_orphans=False)
+
     # ── remove _REV split reactions and restore original bounds ──────────────
     rev_rxns = [r for r in gem.reactions if r.id.endswith("_REV")]
     for rev_rxn in rev_rxns:
@@ -656,13 +755,14 @@ def get_enzyme_usage(ecmodel: cobra.Model,
             continue
         uid = rxn.id[len("usage_prot_"):]
         flux = solution.fluxes.get(rxn.id, 0.0)
-        ub = rxn.upper_bound
+        # Design Ref: §3.3 — v2 capacity is -lower_bound; v1 fallback is ub.
+        cap = usage_capacity(rxn)
         abs_usage = abs(flux)
-        cap_usage = (abs_usage / ub) if ub > 0 else 0.0
+        cap_pct = (abs_usage / cap) if cap > 0 else 0.0
         result[uid] = {
             "abs_usage": abs_usage,
-            "cap_usage": cap_usage,
-            "ub": ub,
+            "cap_usage": cap_pct,
+            "ub": cap,
         }
     return result
 
@@ -760,14 +860,17 @@ def apply_proteomics(ecmodel: cobra.Model, ec_data: "ECModelData",
 
         # 1. Disconnect from protein pool
         usage_rxn.add_metabolites({prot_pool_met: 0}, combine=False)
-        # 2. Constrain by measured abundance [mg/gDCW]
-        usage_rxn.upper_bound = level
+        # 2. Constrain by measured abundance [mg/gDCW] (v2: lb=-level, ub=0)
+        set_usage_capacity(usage_rxn, level)
         total_applied_mg += level
         n_applied += 1
 
-    # 3. Reduce pool UB so it covers only the remaining (unmeasured) enzymes
-    new_pool_ub = max(0.0, pool_rxn.upper_bound - total_applied_mg)
-    pool_rxn.upper_bound = new_pool_ub
+    # 3. Reduce pool capacity so it covers only unmeasured enzymes.
+    # v2 convention: capacity is -lower_bound. Keep ub=0.
+    current_cap = usage_capacity(pool_rxn)
+    new_cap = max(0.0, current_cap - total_applied_mg)
+    pool_rxn.lower_bound = -new_cap
+    pool_rxn.upper_bound = 0.0
 
     return n_applied, missing
 
@@ -792,14 +895,18 @@ def remove_proteomics(ecmodel: cobra.Model, ec_data: "ECModelData") -> int:
             continue
         # Only restore if this reaction was disconnected from pool
         if prot_pool_met not in rxn.metabolites or rxn.metabolites[prot_pool_met] == 0:
-            rxn.add_metabolites({prot_pool_met: -1.0}, combine=False)
-            rxn.upper_bound = 1000.0
+            # v2 convention: prot_pool produced (+1), prot_i consumed (-1),
+            # flux negative. Use +1 for prot_pool here.
+            rxn.add_metabolites({prot_pool_met: 1.0}, combine=False)
+            rxn.lower_bound = -1000.0
+            rxn.upper_bound = 0.0
             n += 1
 
-    # Restore pool UB to the value set at ecModel build time
+    # Restore pool capacity to the value set at ecModel build time
     try:
         pool_rxn = ecmodel.reactions.get_by_id(ec_data.protein_pool_rxn_id)
-        pool_rxn.upper_bound = ec_data.pool_bound()
+        pool_rxn.lower_bound = -ec_data.pool_bound()
+        pool_rxn.upper_bound = 0.0
     except KeyError:
         pass
 
@@ -847,28 +954,28 @@ def flexibilize_enz_concs(ecmodel: cobra.Model, prot_data: dict) -> list[str]:
     if not constrained:
         return []
 
-    # Step 1: relax all proteomics constraints
+    # Step 1: relax all proteomics constraints (v2: lb=-1000, ub=0).
     for uid, level, usage_rxn in constrained:
-        usage_rxn.upper_bound = 1000.0
+        set_usage_capacity(usage_rxn, 1000.0)
 
     # Step 2: baseline feasibility check (model without any proteomics UBs)
     sol = run_fba_on_ecmodel(ecmodel)
     if sol.status != "optimal":
         # Model is infeasible even without proteomics — restore and give up
         for uid, level, usage_rxn in constrained:
-            usage_rxn.upper_bound = level
+            set_usage_capacity(usage_rxn, level)
         return []
 
     # Step 3: re-tighten one by one, highest abundance first
     # (most abundant enzymes are least likely to be the bottleneck)
     relaxed_uids = {uid for uid, _, _ in constrained}  # start: all relaxed
     for uid, level, usage_rxn in sorted(constrained, key=lambda x: x[1], reverse=True):
-        usage_rxn.upper_bound = level          # tighten
+        set_usage_capacity(usage_rxn, level)   # tighten
         sol = run_fba_on_ecmodel(ecmodel)
         if sol.status == "optimal":
             relaxed_uids.discard(uid)          # tightening is OK → keep tight
         else:
-            usage_rxn.upper_bound = 1000.0     # tightening broke FBA → stay relaxed
+            set_usage_capacity(usage_rxn, 1000.0)  # tightening broke FBA → stay relaxed
 
     return sorted(relaxed_uids)
 

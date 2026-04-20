@@ -395,7 +395,11 @@ def _ensure_enzyme_met_and_usage(ecmodel: cobra.Model, ec_data: ECModelData,
     met_id = f"prot_{uniprot_id}"
     rxn_id = f"usage_prot_{uniprot_id}"
 
-    if met_id in ec_data.enzyme_met_ids:
+    # Guard: ``enzyme_met_ids`` is keyed by ``uniprot_id`` (not by met_id),
+    # so the previous ``met_id in ec_data.enzyme_met_ids`` check never fired
+    # and every repeated call for the same protein flooded the log with
+    # "Ignoring reaction 'usage_prot_X' since it already exists." warnings.
+    if uniprot_id in ec_data.enzyme_met_ids:
         return  # already added
 
     prot_pool_met = ecmodel.metabolites.get_by_id(ec_data.protein_pool_met_id)

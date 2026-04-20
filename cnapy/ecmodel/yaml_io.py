@@ -60,15 +60,21 @@ def _ordered_dict_representer(dumper: yaml.SafeDumper, data: OrderedDict):
 
 
 def _omap_constructor(loader: yaml.SafeLoader, node):
-    """Constructor for `!!omap` — tolerant of both sequence and mapping nodes.
+    """Constructor for `!!omap` — tolerant of sequence, mapping, and empty scalar nodes.
 
     Sequence form (GECKO canonical): list of single-key mappings.
     Mapping form: some producers emit plain mappings with the ``!!omap`` tag.
+    Empty scalar (``enzymes: !!omap`` with no content): return empty dict —
+    GECKO writes this when an ec-rxn has no enzyme assignments.
     """
     if isinstance(node, yaml.SequenceNode):
         return _to_dict(loader.construct_sequence(node, deep=True))
     if isinstance(node, yaml.MappingNode):
         return dict(loader.construct_mapping(node, deep=True))
+    if isinstance(node, yaml.ScalarNode):
+        value = loader.construct_scalar(node)
+        if value in (None, ""):
+            return {}
     raise yaml.constructor.ConstructorError(
         None, None,
         f"unexpected node type {type(node).__name__} for !!omap", node.start_mark,

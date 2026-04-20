@@ -112,6 +112,23 @@ ignore = [
 
 [project.scripts]
 cnapy = "cnapy.__main__:main_cnapy"
+
+[tool.setuptools.packages.find]
+include = ["cnapy*"]
+
+[tool.setuptools.package-data]
+"cnapy.data.examples.gecko" = [
+    "README.md",
+    "human/*.yml",
+    "human/*.tsv",
+    "human/manifest.json",
+    "human/LICENSE",
+    "yeast/*.yml",
+    "yeast/*.tsv",
+    "yeast/manifest.json",
+    "yeast/LICENSE",
+]
+
 [project.urls]
 Homepage = "https://github.com/cnapy-org/CNApy"
 Issues = "https://github.com/cnapy-org/CNApy/issues"

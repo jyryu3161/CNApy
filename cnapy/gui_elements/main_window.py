@@ -138,6 +138,26 @@ class MainWindow(QMainWindow):
         self.file_menu.addAction(new_project_from_yaml_action)
         new_project_from_yaml_action.triggered.connect(self.new_project_from_yaml)
 
+        # gecko-data-bundle FR-2 — bundled GECKO examples (Human / Yeast).
+        gecko_example_menu = self.file_menu.addMenu("New project from GECKO example")
+        try:
+            from cnapy.data.examples.gecko import (
+                SUPPORTED_SPECIES,
+                gecko_bundle_manifest,
+            )
+        except ImportError:
+            SUPPORTED_SPECIES = ()
+        for species in SUPPORTED_SPECIES:
+            try:
+                label = gecko_bundle_manifest(species)["display_name"]
+            except Exception:
+                label = species.capitalize()
+            act = QAction(label, self)
+            act.triggered.connect(
+                lambda _checked=False, s=species: self.new_project_from_gecko_example(s)
+            )
+            gecko_example_menu.addAction(act)
+
         open_project_action = QAction("&Open project...", self)
         open_project_action.setShortcut("Ctrl+O")
         self.file_menu.addAction(open_project_action)
@@ -1738,6 +1758,38 @@ class MainWindow(QMainWindow):
         self.update_recently_used_models(filename)
 
         self.setCursor(Qt.ArrowCursor)
+
+    @Slot()
+    def new_project_from_gecko_example(self, species: str):
+        """gecko-data-bundle FR-2 — load a bundled GECKO example GEM.
+
+        Loads the YAML model only; kcat / UniProt files are loaded from
+        the GECKO dialog's Build page via the "Example…" buttons.
+        """
+        from cnapy.data.examples.gecko import (
+            gecko_bundle_file,
+            gecko_bundle_manifest,
+        )
+
+        try:
+            yml_path = gecko_bundle_file(species, "model")
+            manifest = gecko_bundle_manifest(species)
+        except Exception as exc:
+            QMessageBox.critical(
+                self, "GECKO example unavailable",
+                f"Could not locate the bundled {species!r} GECKO example:\n{exc}",
+            )
+            return
+
+        self.new_project_from_yaml(str(yml_path))
+
+        QMessageBox.information(
+            self, "Example loaded",
+            f"Loaded {manifest['display_name']}.\n\n"
+            "To build an ecModel, open Configure → GECKO ecModel and "
+            "use the 'Example…' buttons on the Build page to load the "
+            "bundled kcat + UniProt data for this species."
+        )
 
     def open_project(self, filename):
         self.close_project_dialogs()

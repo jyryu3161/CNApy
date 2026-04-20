@@ -1,0 +1,24 @@
+{
+  "species": "human",
+  "display_name": "Human-GEM (v1.15.0)",
+  "model_id_prefixes": ["human-GEM", "Human-GEM", "HumanGEM"],
+  "files": {
+    "model": "human-GEM.yml",
+    "kcat": "DLKcat.tsv",
+    "uniprot": "uniprot.tsv"
+  },
+  "version": "1.15.0",
+  "release_date": "2023-06-17",
+  "source": "https://github.com/SysBioChalmers/Human-GEM",
+  "kcat_source": "DLKcat predictions (NaN rows removed)",
+  "license_summary": "Human-GEM (MIT), DLKcat (Apache 2.0), UniProt (CC-BY 4.0)",
+  "coverage": {
+    "reactions": 11983,
+    "metabolites": 7130,
+    "genes": 2421,
+    "gpr_reactions": 7355,
+    "kcat_entries": 34660,
+    "kcat_covered_reactions": 5910,
+    "uniprot_entries": 20408
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "species": "yeast",
+  "display_name": "Yeast-GEM (v8.6.2)",
+  "model_id_prefixes": ["yeastGEM", "yeast-GEM", "ecYeastGEM"],
+  "files": {
+    "model": "yeast-GEM.yml",
+    "kcat": "customKcats.tsv",
+    "uniprot": "uniprot.tsv"
+  },
+  "version": "8.6.2",
+  "source": "https://github.com/SysBioChalmers/yeast-GEM",
+  "kcat_source": "BRENDA + DLKcat + manual curation (SysBioChalmers GECKO 3.0)",
+  "license_summary": "Yeast-GEM (MIT), BRENDA (CC-BY 4.0), DLKcat (Apache 2.0), UniProt (CC-BY 4.0)",
+  "coverage": {
+    "reactions": 4063,
+    "metabolites": 2744,
+    "genes": 1160,
+    "gpr_reactions": 2664,
+    "kcat_entries": 4842,
+    "kcat_covered_reactions": 2516,
+    "uniprot_entries": 6060
+  }
+}

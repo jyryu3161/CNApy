@@ -31,6 +31,7 @@ from qtpy.QtWidgets import (
     QGroupBox,
     QHBoxLayout,
     QHeaderView,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QMessageBox,
@@ -136,6 +137,13 @@ class _BuildPage(QWidget):
         self.kcat_btn.setAutoDefault(False)
         self.kcat_btn.clicked.connect(self._browse_kcat)
         kcat_row.addWidget(self.kcat_btn)
+        # gecko-data-bundle FR-3 — load bundled example kcat.
+        self.kcat_example_btn = QPushButton("Example…")
+        self.kcat_example_btn.setAutoDefault(False)
+        self.kcat_example_btn.setToolTip(
+            "Load a bundled GECKO example kcat file (Human or Yeast).")
+        self.kcat_example_btn.clicked.connect(self._load_example_kcat)
+        kcat_row.addWidget(self.kcat_example_btn)
         kfl.addLayout(kcat_row)
         self.kcat_status = QLabel("kcat entries: —")
         kfl.addWidget(self.kcat_status)
@@ -190,6 +198,13 @@ class _BuildPage(QWidget):
         self.uni_btn.setAutoDefault(False)
         self.uni_btn.clicked.connect(self._browse_uniprot)
         uni_row.addWidget(self.uni_btn)
+        # gecko-data-bundle FR-3 — load bundled example UniProt.
+        self.uni_example_btn = QPushButton("Example…")
+        self.uni_example_btn.setAutoDefault(False)
+        self.uni_example_btn.setToolTip(
+            "Load a bundled GECKO example UniProt file (Human or Yeast).")
+        self.uni_example_btn.clicked.connect(self._load_example_uniprot)
+        uni_row.addWidget(self.uni_example_btn)
         ufl.addLayout(uni_row)
         self.uni_status = QLabel("UniProt entries: —")
         ufl.addWidget(self.uni_status)
@@ -342,8 +357,10 @@ class _BuildPage(QWidget):
         self.revert_btn.setEnabled(is_ec)
         self.save_yaml_btn.setEnabled(is_ec)
         self.load_yaml_btn.setEnabled(True)
-        for w in [self.kcat_btn, self.uni_btn, self.sigma_spin,
-                  self.f_spin, self.ptot_spin, self.full_radio, self.light_radio]:
+        for w in [self.kcat_btn, self.kcat_example_btn,
+                  self.uni_btn, self.uni_example_btn,
+                  self.sigma_spin, self.f_spin, self.ptot_spin,
+                  self.full_radio, self.light_radio]:
             w.setEnabled(not is_ec)
         if ec.kcat_entries:
             self.kcat_status.setText(f"kcat entries: {len(ec.kcat_entries)}")
@@ -392,6 +409,66 @@ class _BuildPage(QWidget):
             data = parse_uniprot_file(path)
             self.appdata.project.ec_model_data.uniprot_data = data
             self.uni_edit.setText(path)
+            self.uni_status.setText(f"UniProt entries: {len(data)}")
+            self._auto_coverage()
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", str(exc))
+
+    # ── gecko-data-bundle FR-3: bundled example loaders ──────────────────
+
+    def _pick_example_species(self) -> "str | None":
+        """Ask the user which bundled GECKO example species to load."""
+        from cnapy.data.examples.gecko import (
+            SUPPORTED_SPECIES,
+            gecko_bundle_manifest,
+        )
+
+        labels: list[str] = []
+        for sp in SUPPORTED_SPECIES:
+            try:
+                labels.append(gecko_bundle_manifest(sp)["display_name"])
+            except Exception:
+                labels.append(sp.capitalize())
+        if not labels:
+            QMessageBox.warning(self, "No bundled examples",
+                                "No GECKO example datasets are bundled.")
+            return None
+        choice, ok = QInputDialog.getItem(
+            self, "Select example species",
+            "Choose which bundled GECKO dataset to load:",
+            labels, 0, False,
+        )
+        if not ok:
+            return None
+        return SUPPORTED_SPECIES[labels.index(choice)]
+
+    @Slot()
+    def _load_example_kcat(self):
+        from cnapy.data.examples.gecko import gecko_bundle_file
+        species = self._pick_example_species()
+        if species is None:
+            return
+        try:
+            path = gecko_bundle_file(species, "kcat")
+            entries = parse_customkcats_file(str(path))
+            self.appdata.project.ec_model_data.kcat_entries = entries
+            self.kcat_edit.setText(str(path))
+            self.kcat_status.setText(f"kcat entries: {len(entries)}")
+            self._auto_coverage()
+        except Exception as exc:
+            QMessageBox.critical(self, "Error", str(exc))
+
+    @Slot()
+    def _load_example_uniprot(self):
+        from cnapy.data.examples.gecko import gecko_bundle_file
+        species = self._pick_example_species()
+        if species is None:
+            return
+        try:
+            path = gecko_bundle_file(species, "uniprot")
+            data = parse_uniprot_file(str(path))
+            self.appdata.project.ec_model_data.uniprot_data = data
+            self.uni_edit.setText(str(path))
             self.uni_status.setText(f"UniProt entries: {len(data)}")
             self._auto_coverage()
         except Exception as exc:

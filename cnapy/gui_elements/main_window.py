@@ -1,5 +1,6 @@
 import json
 import os
+import shutil
 import pickle
 import traceback
 import xml.etree.ElementTree as ET
@@ -86,6 +87,7 @@ from cnapy.gui_elements.map_view import MapView
 from cnapy.gui_elements.mcs_dialog import MCSDialog
 from cnapy.gui_elements.media_management_dialog import MediaManagementDialog
 from cnapy.gui_elements.model_management_dialog import ModelManagementDialog
+from cnapy.gui_elements.gecko_unified_dialog import GeckoUnifiedDialog
 from cnapy.gui_elements.omics_integration_dialog import OmicsIntegrationDialog
 from cnapy.gui_elements.plot_space_dialog import PlotSpaceDialog
 from cnapy.gui_elements.reactions_list import build_reaction_string_with_names
@@ -130,6 +132,31 @@ class MainWindow(QMainWindow):
         new_project_from_sbml_action = QAction("New project from SBML...", self)
         self.file_menu.addAction(new_project_from_sbml_action)
         new_project_from_sbml_action.triggered.connect(self.new_project_from_sbml)
+
+        # gecko3-yaml-import FR-1 — accept GECKO YAML (plain GEM or ecModel).
+        new_project_from_yaml_action = QAction("New project from YAML...", self)
+        self.file_menu.addAction(new_project_from_yaml_action)
+        new_project_from_yaml_action.triggered.connect(self.new_project_from_yaml)
+
+        # gecko-data-bundle FR-2 — bundled GECKO examples (Human / Yeast).
+        gecko_example_menu = self.file_menu.addMenu("New project from GECKO example")
+        try:
+            from cnapy.data.examples.gecko import (
+                SUPPORTED_SPECIES,
+                gecko_bundle_manifest,
+            )
+        except ImportError:
+            SUPPORTED_SPECIES = ()
+        for species in SUPPORTED_SPECIES:
+            try:
+                label = gecko_bundle_manifest(species)["display_name"]
+            except Exception:
+                label = species.capitalize()
+            act = QAction(label, self)
+            act.triggered.connect(
+                lambda _checked=False, s=species: self.new_project_from_gecko_example(s)
+            )
+            gecko_example_menu.addAction(act)
 
         open_project_action = QAction("&Open project...", self)
         open_project_action.setShortcut("Ctrl+O")
@@ -540,6 +567,15 @@ class MainWindow(QMainWindow):
         omics_dialog_action.triggered.connect(self.perform_omics_integration)
         self.omics_menu.addAction(omics_dialog_action)
 
+        self.analysis_menu.addSeparator()
+
+        # GECKO enzyme-constrained model menu
+        self.gecko_dialog = None  # Singleton for non-modal dialog
+
+        gecko_action = QAction("Enzyme-Constrained Model (GECKO)…", self)
+        gecko_action.triggered.connect(self.show_gecko_dialog)
+        self.analysis_menu.addAction(gecko_action)
+
         self.thermodynamic_menu = self.analysis_menu.addMenu("Thermodynamic analyses")
 
         optmdf_action = QAction("OptMDFpathway...", self)
@@ -887,6 +923,24 @@ class MainWindow(QMainWindow):
     def _on_omics_dialog_closed(self):
         """Handle omics dialog closure."""
         self.omics_dialog = None
+
+    @Slot()
+    def show_gecko_dialog(self):
+        """Open the unified GECKO workflow dialog (non-modal singleton)."""
+        if self.gecko_dialog is not None and self.gecko_dialog.isVisible():
+            self.gecko_dialog.raise_()
+            self.gecko_dialog.activateWindow()
+            return
+
+        self.gecko_dialog = GeckoUnifiedDialog(self.appdata, self)
+        self.gecko_dialog.setModal(False)
+        self.gecko_dialog.setAttribute(Qt.WA_DeleteOnClose)
+        self.gecko_dialog.destroyed.connect(self._on_gecko_dialog_closed)
+        self.gecko_dialog.show()
+
+    @Slot()
+    def _on_gecko_dialog_closed(self):
+        self.gecko_dialog = None
 
     # Strain design computation and viewing functions
     def strain_design(self):
@@ -1651,6 +1705,92 @@ class MainWindow(QMainWindow):
 
             self.setCursor(Qt.ArrowCursor)
 
+    @Slot()
+    def new_project_from_yaml(self, filename: str = ""):
+        """gecko3-yaml-import FR-1 — load a GECKO YAML (plain GEM or ecModel).
+
+        The loader auto-detects the YAML flavour: files carrying an
+        ``ec-rxns`` section become ecModel projects (Revert button active);
+        plain GEM YAMLs land as regular projects with the Build ecModel
+        pipeline available.
+        """
+        from cnapy.ecmodel.exceptions import EcYamlError
+        from cnapy.ecmodel.yaml_io import load_ecmodel
+
+        if not self.checked_unsaved():
+            return
+
+        if not filename:
+            dialog = QFileDialog(self)
+            filename = dialog.getOpenFileName(
+                self, "New project from YAML",
+                self.appdata.work_directory,
+                "GECKO YAML (*.yml *.yaml);;All files (*)",
+            )[0]
+        if not filename or not os.path.exists(filename):
+            return
+
+        self.setCursor(Qt.BusyCursor)
+        try:
+            cobra_py_model, ec_data = load_ecmodel(filename)
+        except EcYamlError as exc:
+            self.setCursor(Qt.ArrowCursor)
+            QMessageBox.warning(self, "Could not read YAML.", str(exc))
+            return
+        except Exception as exc:   # pragma: no cover — unexpected I/O
+            self.setCursor(Qt.ArrowCursor)
+            QMessageBox.critical(self, "Could not read YAML.",
+                                 f"Unexpected error: {exc}")
+            return
+
+        self.new_project_unchecked()
+        self.appdata.project.cobra_py_model = cobra_py_model
+        self.appdata.project.ec_model_data = ec_data
+        self.appdata.project.store_original_bounds()
+        self.set_current_filename(filename)
+
+        default_map = CnaMap("Map")
+        self.appdata.project.maps = {"Map": default_map}
+        self.recreate_maps()
+        self.centralWidget().update(rebuild_all_tabs=True)
+        self.update_current_solver_name()
+        self.update_scenario_file_name()
+        self.update_recently_used_models(filename)
+
+        self.setCursor(Qt.ArrowCursor)
+
+    @Slot()
+    def new_project_from_gecko_example(self, species: str):
+        """gecko-data-bundle FR-2 — load a bundled GECKO example GEM.
+
+        Loads the YAML model only; kcat / UniProt files are loaded from
+        the GECKO dialog's Build page via the "Example…" buttons.
+        """
+        from cnapy.data.examples.gecko import (
+            gecko_bundle_file,
+            gecko_bundle_manifest,
+        )
+
+        try:
+            yml_path = gecko_bundle_file(species, "model")
+            manifest = gecko_bundle_manifest(species)
+        except Exception as exc:
+            QMessageBox.critical(
+                self, "GECKO example unavailable",
+                f"Could not locate the bundled {species!r} GECKO example:\n{exc}",
+            )
+            return
+
+        self.new_project_from_yaml(str(yml_path))
+
+        QMessageBox.information(
+            self, "Example loaded",
+            f"Loaded {manifest['display_name']}.\n\n"
+            "To build an ecModel, open Configure → GECKO ecModel and "
+            "use the 'Example…' buttons on the Build page to load the "
+            "bundled kcat + UniProt data for this species."
+        )
+
     def open_project(self, filename):
         self.close_project_dialogs()
         temp_dir = TemporaryDirectory()
@@ -1715,6 +1855,44 @@ class MainWindow(QMainWindow):
                         comp_data = json.load(fp)
                         self.appdata.project.comp_values = {k: tuple(v) for k, v in comp_data.get("values", {}).items()}
                         self.appdata.project.comp_values_type = comp_data.get("type", 0)
+
+                # Load ecmodel_data if present.
+                # Design Ref: §5.1 FR-20 — v1 .cna files are auto-migrated to the
+                # GECKO 3.0 sign convention. The original file is backed up to
+                # ``{filename}.bak`` and the user is shown a one-shot notice.
+                from cnapy.ecmodel.ecmodel_data import ECModelData as _ECModelData
+                ecmodel_data_path = temp_dir.name + "/ecmodel_data.json"
+                if os.path.exists(ecmodel_data_path):
+                    with open(ecmodel_data_path) as fp:
+                        ec_data_dict = json.load(fp)
+                    ec_data, was_migrated = _ECModelData.from_dict_with_migration(
+                        ec_data_dict, cobra_py_model,
+                    )
+                    self.appdata.project.ec_model_data = ec_data
+
+                    if was_migrated:
+                        # v1 → v2 migrated the cobra model in place; refresh the
+                        # original-bounds snapshot so undo/redo reflect v2.
+                        self.appdata.project.store_original_bounds()
+
+                        backup_path = filename + ".bak"
+                        try:
+                            if not os.path.exists(backup_path):
+                                shutil.copy2(filename, backup_path)
+                            backup_info = f"원본 파일은 `{backup_path}`로 백업되었습니다."
+                        except OSError as exc:
+                            backup_info = (
+                                f"원본 백업을 만들지 못했습니다 ({exc}). "
+                                "저장 전에 수동으로 원본을 보관해 두세요."
+                            )
+                        QMessageBox.information(
+                            self,
+                            "ecModel 마이그레이션",
+                            "기존 CNApy 프로젝트의 ecModel 부호 규약이 GECKO 3.0 "
+                            "표준으로 업데이트되었습니다.\n\n" + backup_info,
+                        )
+                else:
+                    self.appdata.project.ec_model_data = _ECModelData()
 
                 self.clear_status_bar()
                 self.update_scenario_file_name()
@@ -1879,6 +2057,14 @@ class MainWindow(QMainWindow):
             with open(comp_values_file, "w") as fp:
                 json.dump(comp_data, fp)
 
+        # Save ecmodel_data if an ecModel is active
+        ecmodel_data_file = None
+        if self.appdata.project.ec_model_data.is_ecmodel:
+            import json as _json
+            ecmodel_data_file = tmp_dir + "ecmodel_data.json"
+            with open(ecmodel_data_file, "w") as fp:
+                _json.dump(self.appdata.project.ec_model_data.to_dict(), fp)
+
         with ZipFile(filename, "w") as zip_obj:
             zip_obj.write(tmp_dir + "model.sbml", arcname="model.sbml")
             zip_obj.write(tmp_dir + "box_positions.json", arcname="box_positions.json")
@@ -1888,6 +2074,9 @@ class MainWindow(QMainWindow):
             # Save comp_values if present
             if comp_values_file:
                 zip_obj.write(comp_values_file, arcname="comp_values.json")
+            # Save ecmodel_data if present
+            if ecmodel_data_file:
+                zip_obj.write(ecmodel_data_file, arcname="ecmodel_data.json")
 
         # put svgs into temporary directory and update references
         with ZipFile(filename, "r") as zip_ref:

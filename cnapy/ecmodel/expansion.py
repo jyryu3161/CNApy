@@ -85,6 +85,50 @@ def clear_pseudoreaction_gpr(model: cobra.Model,
     return cleared
 
 
+# ── FR-02: invert backward-only irreversible reactions ───────────────────────
+
+def invert_backward_only(model: cobra.Model) -> list[str]:
+    """Flip stoichiometry + bounds of reactions that only run backwards.
+
+    GECKO 3.0 Box 1 Step 2 (Nat Protoc 2024, p.642). A reaction with
+    ``lb < 0 and ub <= 0`` is "backward-only" — only the reverse
+    direction is allowed. GECKO normalises these so every irreversible
+    reaction runs in the forward direction:
+
+    * Multiply every stoichiometric coefficient by ``-1``.
+    * Set new bounds to ``(0, -old_lb)``.
+
+    Reactions that are already forward (``lb >= 0``) or reversible
+    (``lb < 0 < ub``) are untouched.
+
+    Parameters
+    ----------
+    model : cobra.Model (mutated in place)
+
+    Returns
+    -------
+    inverted : list of reaction IDs that were flipped.
+    """
+    inverted: list[str] = []
+    for rxn in model.reactions:
+        if rxn.lower_bound < 0 and rxn.upper_bound <= 0:
+            # Negate every coefficient in one batched call (cobra emits a
+            # solver-side update per add_metabolites, so batching matters
+            # on large models).
+            rxn.add_metabolites(
+                {met: -2 * coeff for met, coeff in rxn.metabolites.items()},
+                combine=True,
+            )
+            old_lb = rxn.lower_bound
+            rxn.lower_bound = 0.0
+            rxn.upper_bound = -old_lb
+            inverted.append(rxn.id)
+
+    if inverted:
+        logger.info("Inverted %d backward-only reaction(s)", len(inverted))
+    return inverted
+
+
 # ── FR-04: isozyme split (expandModel equivalent) ────────────────────────────
 
 _AND_PATTERN = re.compile(r"\s+and\s+", re.IGNORECASE)

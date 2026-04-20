@@ -26,6 +26,7 @@ import pandas as pd
 from cnapy.ecmodel.expansion import (
     clear_pseudoreaction_gpr,
     expand_isozymes,
+    invert_backward_only,
     set_usage_capacity,
     usage_capacity,
 )
@@ -541,18 +542,22 @@ def _apply_entry_light(ecmodel: cobra.Model, ec_data: ECModelData,
     prot_pool_met = ecmodel.metabolites.get_by_id(ec_data.protein_pool_met_id)
 
     if proteins:
-        # Use minimum protein cost across all proteins in the entry
-        min_coeff = None
+        # gecko3-paper-parity FR-B — within ONE entry, proteins listed
+        # together represent a complex (co-required), so their costs sum.
+        # ACROSS entries (= isozymes targeting the same reaction), the
+        # minimum cost wins (the fastest isozyme). The previous code took
+        # MIN within an entry, which under-costed complexes.
+        total_coeff = 0.0
+        any_valid = False
         for prot, units in zip(proteins, stoicho):
             info = ec_data.uniprot_data.get(prot, {})
             mw = info.get("mw_da", 0.0)
             if mw <= 0:
                 continue
-            c = _stoich_coeff(mw, kcat, units)
-            if min_coeff is None or abs(c) < abs(min_coeff):
-                min_coeff = c
+            total_coeff += _stoich_coeff(mw, kcat, units)
+            any_valid = True
 
-        if min_coeff is None:
+        if not any_valid:
             return matched_rxn_ids
 
         for rxn_id in matched_rxn_ids:
@@ -562,11 +567,11 @@ def _apply_entry_light(ecmodel: cobra.Model, ec_data: ECModelData,
                 failed.append(rxn_id)
                 continue
             # Use the minimum-cost (= highest kcat) isozyme for each reaction.
-            # If a previous entry already set a coefficient, only overwrite if
-            # this entry's cost is strictly lower (i.e. this enzyme is faster).
+            # If a previous entry already set a coefficient, only overwrite
+            # if this entry's complex cost is strictly lower.
             existing = rxn.metabolites.get(prot_pool_met, 0.0)
-            if existing == 0.0 or abs(min_coeff) < abs(existing):
-                rxn.add_metabolites({prot_pool_met: min_coeff}, combine=False)
+            if existing == 0.0 or abs(total_coeff) < abs(existing):
+                rxn.add_metabolites({prot_pool_met: total_coeff}, combine=False)
 
     return failed
 
@@ -603,14 +608,23 @@ def build_ecmodel(model: cobra.Model,
     # draw from the protein pool.
     clear_pseudoreaction_gpr(ecmodel)
 
+    # ── Stage 1 Box 1 Step 2 (FR-02): invert backward-only reactions ─────────
+    # gecko3-paper-parity FR-C — applies to both Full and Light modes per
+    # the GECKO 3.0 spec. Normalises every irreversible reaction to run
+    # in the forward direction so subsequent enzyme costs are consistent.
+    invert_backward_only(ecmodel)
+
     # ── Stage 1 Box 1 Step 4: split reversible enzyme-catalysed reactions ────
-    if not ec_data.gecko_light:
-        _split_reversible_reactions(ecmodel, ec_data)
+    # gecko3-paper-parity FR-A — applied to both Full and Light per spec
+    # (`makeEcModel.m` Step 4 has no geckoLight branch). Without this the
+    # light ecModel allows reverse flux at zero enzyme cost.
+    _split_reversible_reactions(ecmodel, ec_data)
 
     # ── Stage 1 Box 1 Step 5 (FR-04): split isozyme-catalysed reactions ──────
     # Design Ref: §3.4 — `(g1 and g2) or g3` → `_EXP_1`, `_EXP_2`. Each
     # variant gets a single isozyme (or complex), eliminating the AND-vs-OR
     # bug where separate kcat entries for the same rxn forced BOTH enzymes.
+    # Step 5 is Full-only per the GECKO spec ("[Skipped with geckoLight]").
     if not ec_data.gecko_light:
         expand_isozymes(ecmodel, ec_data)
 

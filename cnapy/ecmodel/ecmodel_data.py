@@ -176,9 +176,14 @@ class ECModelData:
             self.schema_version = 2
 
     def reset(self):
-        """Reset to default (non-ecModel) state."""
+        """Reset to default (non-ecModel) state.
+
+        Note: ``gecko_light`` is a user-selected build mode (not derived
+        state), so it is preserved across resets. Clearing it here would
+        make the GUI's Light-radio selection silently ignored whenever
+        build_ecmodel is re-run.
+        """
         self.is_ecmodel = False
-        self.gecko_light = False
         self.enzyme_met_ids.clear()
         self.enzyme_rxn_ids.clear()
         self.original_reaction_ids.clear()

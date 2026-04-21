@@ -5,7 +5,7 @@
 [![Open issues](https://flat.badgen.net/github/open-issues/cnapy-org/cnapy)](https://github.com/cnapy-org/CNApy/issues)
 [![Gitter chat](https://flat.badgen.net/gitter/members/cnapy-org/community)](https://gitter.im/cnapy-org/community)
 
-![CNApy screenshot](screenshot.png)
+![CNApy screenshot](CNApy-intro.png)
 
 ## 소개
 
@@ -15,6 +15,7 @@ CNApy를 사용하면 다음과 같은 작업들을 할 수 있어요:
 *   **다양한 COBRA 분석**: 화학양론적 대사 모델을 이용한 제약 조건 기반 재구성 및 분석(COBRA)의 여러 일반적인 방법들을 수행할 수 있습니다.
 *   **인터랙티브한 시각화**: COBRA 계산 결과를 *인터랙티브하고 편집 가능한* 대사 지도로 시각화할 수 있습니다. Escher 지도 [[GitHub]](https://escher.github.io/#/)[[논문]](<https://doi.org/10.1371/journal.pcbi.1004321>)도 지원해요!
 *   **모델 생성 및 편집**: 반응, 대사산물, 유전자 등을 포함한 대사 모델을 직접 만들고 수정할 수 있습니다.
+*   **효소 제약 모델링 (GECKO)**: GECKO 3.0 기반 효소 제약 모델(ecModel)을 빌드하고 단백질체 데이터를 통합할 수 있습니다.
 
 모델을 불러오거나 내보낼 때는 널리 사용되는 SBML 표준 형식 [[사이트]](https://sbml.org/)[[논문]](https://www.embopress.org/doi/abs/10.15252/msb.20199110)을 지원합니다.
 
@@ -27,8 +28,14 @@ CNApy를 사용하면 다음과 같은 작업들을 할 수 있어요:
 - **Flux Sampling**: 모델의 가능한 플럭스 분포를 샘플링하여 분석할 수 있습니다.
 - **Linear MOMA**: 기준 플럭스 분포와의 차이를 최소화하는 선형 MOMA 분석을 수행할 수 있습니다.
 - **ROOM (Regulatory On/Off Minimization)**: MILP solver를 사용하여 유전자 녹아웃 후 유의미한 플럭스 변화를 최소화하는 분석을 수행할 수 있습니다 (MILP solver 필요).
+- **Dynamic FBA (dFBA)**: ODE 커플링을 통해 시간 경과에 따른 바이오매스와 외부 대사체 농도 변화를 시뮬레이션합니다.
 - **Flux Response Analysis**: 타겟 반응의 플럭스를 스캔하면서 제품 반응의 최대 생산률을 플롯하는 분석을 수행할 수 있습니다.
-- **Omics Integration (LAD)**: Transcriptome 데이터를 기반으로 LAD (Least Absolute Deviation) 방법을 사용하여 플럭스 분포를 예측할 수 있습니다.
+- **FSEOF / FVSEOF**: 타겟 생산 플럭스와 상관된 반응을 자동으로 식별하여 대사 엔지니어링 타겟(과발현/녹아웃)을 제안합니다.
+- **Gene Essentiality Analysis**: 유전자 필수성을 체계적으로 스크리닝합니다.
+- **Robustness Analysis**: 파라미터 변동에 대한 모델 강건성을 평가합니다.
+- **Batch MOMA/ROOM Analysis**: 다중 knockout 시나리오를 한 번에 배치 실행합니다.
+- **Omics Integration (LAD / E-Flux2)**: Transcriptome 데이터를 기반으로 LAD (Least Absolute Deviation) 또는 E-Flux2 (True L2 norm QP) 방법을 사용하여 플럭스 분포를 예측하고, 다중 조건을 비교할 수 있습니다.
+- **GECKO 효소 제약 모델링** [[GitHub]](https://github.com/SysBioChalmers/GECKO)[[논문]](https://www.nature.com/articles/s41596-023-00931-7): GECKO 3.0 논문 방법론에 따라 기존 GEM을 ecModel로 확장하고, 단백질체 데이터 통합 및 kcat What-if 분석을 수행할 수 있습니다.
 - **실제 측정된 *in vivo* 플럭스 시나리오 적용**: 화학양론적으로 타당하게 만들며, 선택적으로 바이오매스 반응을 수정할 수도 있습니다 [[논문]](https://academic.oup.com/bioinformatics/article/39/10/btad600/7284109).
 - **Elementary Flux Modes (EFM)** [[리뷰]](https://analyticalsciencejournals.onlinelibrary.wiley.com/doi/full/10.1002/biot.201200269)
 - **OptMDFpathway 기반 열역학적 방법** [[논문]](https://doi.org/10.1371/journal.pcbi.1006492)
@@ -64,6 +71,7 @@ CNApy를 설치하는 4가지 방법이 있습니다:
 -   [CNApy 가이드](https://cnapy-org.github.io/CNApy-guide/)에서 주요 기능에 대한 정보를 확인하실 수 있습니다.
 -   [CNApy 유튜브 채널](https://www.youtube.com/channel/UCRIXSdzs5WnBE3_uukuNMlg)에서 사용 영상을 보실 수 있습니다.
 -   [CNApy 예제 프로젝트](https://github.com/cnapy-org/CNApy-projects/releases/latest)를 제공합니다. 가장 일반적인 *E. coli* 모델들이 포함되어 있으며, CNApy를 처음 시작할 때나 파일 메뉴를 통해 다운로드할 수 있습니다.
+-   **GECKO 예제**: File > "New project from GECKO example" 메뉴에서 Human-GEM과 Yeast-GEM 번들 데이터셋으로 GECKO 워크플로우를 즉시 체험해볼 수 있습니다.
 
 ## CNApy 설치 프로그램 사용하기
 
@@ -128,36 +136,22 @@ Thiele et al. (2022). CNApy: a CellNetAnalyzer GUI in Python for analyzing and d
 
 ## 최근 변경 사항
 
-자세한 변경 사항은 [CHANGELOG.md](CHANGELOG.md)를 참고하세요.
+이 버전에 새로 추가된 주요 기능은 **GECKO 효소 제약 모델링(enzyme-constrained modeling)** 워크플로우입니다. 이전 변경 내역을 포함한 전체 히스토리는 [CHANGELOG.md](CHANGELOG.md)를 참고하세요.
 
-이 버전에는 다음과 같은 기능이 추가/개선되었습니다:
+### 🧬 효소 제약 모델링 (GECKO)
 
-- **Model Management 기능 추가**: Model 메뉴에서 다양한 모델 관리 도구를 사용할 수 있습니다.
-  - GPR 정리: GPR 규칙에서 중복된 유전자를 자동으로 탐지하고 정리
-  - Dead-end Metabolites: 생산만 되거나 소비만 되는 대사체 탐지
-  - Blocked Reactions: FVA 기반으로 플럭스가 0인 반응 탐지
-  - Orphan Reactions: 고립된 대사체를 가진 반응 탐지
-  - Model Validation: 질량/전하 균형, 바운드 오류 등 종합 검증
+- **GECKO 3.0 기반 ecModel 빌드**: Analysis 메뉴 > "Enzyme-Constrained Model (GECKO)…"에서 기존 GEM을 효소 제약 모델(ecModel)로 확장할 수 있습니다. GECKO 3.0 논문 방법론을 충실히 구현하여 Full 및 Light 두 formulation을 모두 지원합니다.
 
-- **External Flux Data Loading 기능 추가**: Model 메뉴에서 외부 플럭스 데이터를 로드하여 시각화할 수 있습니다.
-  - CSV/TSV 파일에서 reaction-flux 데이터 로드
-  - 여러 조건(파일)을 동시에 로드하여 비교 분석
-  - 두 조건 간 Log2 Fold Change 계산 및 히트맵 시각화 (녹색=상향, 빨강=하향)
+- **통합 워크플로우 다이얼로그**: 사이드바 네비게이션 기반의 단일 다이얼로그에서 GECKO의 모든 단계를 순차적으로 수행할 수 있습니다.
+  - **Build ecModel**: Kcat data 및 MW data 로드, sigma / f / Ptot 파라미터 설정, Full/Light formulation 선택
+  - **Enzyme Usage Report**: 효소별 사용량 및 제약 분석
+  - **Proteomics Integration**: 단백질체 측정 데이터를 통합하여 개별 효소 용량 제약
+  - **kcat What-if Analysis**: kcat 값 변경 시 플럭스 영향을 시뮬레이션
 
-- **LLM 기반 Strain Analysis 기능 추가**: Model 메뉴에서 ChatGPT 또는 Gemini API를 활용하여 특정 균주에서 반응/유전자의 존재 가능성을 분석할 수 있습니다.
-  - OpenAI (GPT-4o 등) 및 Google Gemini Flash 지원
-  - 웹 검색 기반 실시간 정보 활용
-  - API 키는 로컬에 저장되어 매번 입력할 필요 없음
-  - 분석 결과 JSON/CSV 내보내기 지원
+- **GECKO YAML 저장/로드 및 프로젝트 상태 복원**: EcStructure 메타데이터를 포함한 GECKO YAML 파일을 저장하고 불러올 수 있습니다. 또한 `.cna` 프로젝트를 저장/재오픈할 때 ecModel 파라미터와 빌드 결과(단백질 pool, 효소 제약, isozyme 매핑 등)가 자동으로 복원되므로 매번 다시 빌드할 필요가 없습니다. Plain GEM YAML과 ecModel YAML을 모두 지원합니다.
 
-- **ROOM (Regulatory On/Off Minimization) 기능 추가**: Analysis 메뉴에서 MILP solver를 사용하여 ROOM 분석을 수행할 수 있습니다. 유전자 녹아웃 후 유의미한 플럭스 변화를 최소화하는 방법입니다.
+- **File → New project from YAML**: GECKO YAML 파일을 직접 불러와 새 프로젝트를 바로 시작할 수 있습니다.
 
-- **Flux Response Analysis 메뉴 연결**: 타겟 반응의 플럭스를 스캔하면서 제품 반응의 최대 생산률을 분석하는 기능이 Analysis 메뉴에 추가되었습니다.
-
-- **Omics Integration (LAD) 기능 추가**: Transcriptome 데이터를 기반으로 플럭스 분포를 예측하는 LAD (Least Absolute Deviation) 방법이 Analysis > Omics Integration 메뉴에 추가되었습니다.
-
-- **OptKnock 설명 개선**: Strain Design 다이얼로그에서 OptKnock의 Inner/Outer Objective 설정에 대한 명확한 설명과 예시가 추가되었습니다.
-
-- **맵 기능 개선**: PNG/SVG 이미지 파일만으로도 CNApy 맵을 생성할 수 있으며, 모델에 없는 반응 ID도 맵에 박스로 추가하여 플럭스 값을 표시할 수 있습니다.
+- **번들 GECKO 예제 데이터셋**: File > "New project from GECKO example" 메뉴에서 **Human-GEM**과 **Yeast-GEM** 번들 데이터셋(DLKcat, customKcats, UniProt 포함)으로 GECKO 워크플로우를 즉시 실행할 수 있습니다.
 
 *참고: 이 변경 사항들은 Apache License 2.0 하에 배포되며, 원본 CNApy 프로젝트의 일부입니다.*

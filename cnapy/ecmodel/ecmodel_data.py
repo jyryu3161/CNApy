@@ -31,8 +31,8 @@ class ECModelData:
     """
     Stores all metadata needed to build, track, and revert a GECKO ecModel.
 
-    Populated by gecko_dialog when the user loads CSV files and converts the
-    model.  Serialised as ecmodel_data.json inside the .cna project ZIP so
+    Populated by gecko_unified_dialog when the user loads CSV files and converts
+    the model.  Serialised as ecmodel_data.json inside the .cna project ZIP so
     the ecModel state survives save/load.
     """
 

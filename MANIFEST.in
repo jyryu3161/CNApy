@@ -2,4 +2,3 @@ include README.md
 include LICENSE
 include pyproject.toml
 recursive-include cnapy/data *
-recursive-include cnapy/agents/config *.yaml

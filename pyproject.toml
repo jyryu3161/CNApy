@@ -37,17 +37,6 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-llm = [
-    "anthropic>=0.25",
-    "openai>=1.0",
-    "google-generativeai>=0.3",
-]
-ai-agents = [
-    "crewai>=0.80.0",
-    "crewai-tools>=0.14.0",
-    "anthropic>=0.25",
-    "openai>=1.0",
-]
 dev = [
     "pytest>=7.2",
     "pytest-cov>=4.0",
@@ -63,7 +52,6 @@ markers = [
     "slow: marks tests as slow (deselect with '-m \"not slow\"')",
     "requires_milp: requires a MILP solver",
     "requires_efmtool: requires efmtool_link package",
-    "requires_crewai: requires CrewAI and LLM API key",
 ]
 
 [tool.coverage.run]

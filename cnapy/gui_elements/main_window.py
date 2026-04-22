@@ -2705,11 +2705,6 @@ class MainWindow(QMainWindow):
         self.centralWidget().update()
         self.setCursor(Qt.ArrowCursor)
 
-    # def efm(self):
-    #     self.efm_dialog = EFMDialog(
-    #         self.appdata, self.centralWidget())
-    #     self.efm_dialog.exec()
-
     def in_out_flux(self):
         in_out_flux_dialog = InOutFluxDialog(self.appdata)
         in_out_flux_dialog.exec()

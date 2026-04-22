@@ -17,19 +17,31 @@ class AboutDialog(QDialog):
         self.text1 = QLabel(
             f"Version: {appdata.version}\
             \n\nCNApy is an integrated environment for metabolic modeling.\
-            \n\nRecent additions:\
-            \n• ROOM (Regulatory On/Off Minimization) analysis\
-            \n• Flux Response Analysis\
-            \n• Omics Integration (LAD flux prediction)\
-            \n• Enhanced map features (PNG-only maps, custom reaction boxes)\
-            \n• Improved OptKnock documentation\
-            \n\nFor more information visit us at:"
+            \n\nThis is a research-oriented fork of the original CNApy,\
+            \nwith additions including:\
+            \n• GECKO 3.0 enzyme-constrained modeling\
+            \n• E-Flux2 / LAD omics integration\
+            \n• Dynamic FBA (dFBA)\
+            \n• FSEOF / FVSEOF strain design\
+            \n• Gene Essentiality and Robustness Analysis\
+            \n• Batch MOMA/ROOM\
+            \n\nSee CHANGELOG.md for the full fork-specific change history.\
+            \n\nFork repository:"
         )
         self.text1.setAlignment(Qt.AlignCenter)
 
-        self.url1 = QLabel('<a href="https://github.com/cnapy-org/CNApy"> https://github.com/cnapy-org/CNApy </a>')
+        self.url1 = QLabel('<a href="https://github.com/jyryu3161/CNApy"> https://github.com/jyryu3161/CNApy </a>')
         self.url1.setOpenExternalLinks(True)
         self.url1.setAlignment(Qt.AlignCenter)
+
+        self.text_upstream = QLabel("Upstream project:")
+        self.text_upstream.setAlignment(Qt.AlignCenter)
+
+        self.url_upstream = QLabel(
+            '<a href="https://github.com/cnapy-org/CNApy"> https://github.com/cnapy-org/CNApy </a>'
+        )
+        self.url_upstream.setOpenExternalLinks(True)
+        self.url_upstream.setAlignment(Qt.AlignCenter)
 
         self.text2 = QLabel(
             "<br>If you use CNApy in your scientific work, please consider to cite CNApy's publication:<br>"
@@ -49,6 +61,8 @@ class AboutDialog(QDialog):
         self.layout = QVBoxLayout()
         self.layout.addWidget(self.text1)
         self.layout.addWidget(self.url1)
+        self.layout.addWidget(self.text_upstream)
+        self.layout.addWidget(self.url_upstream)
         self.layout.addWidget(self.text2)
         self.layout.addWidget(self.url2)
         self.layout.addWidget(self.button)

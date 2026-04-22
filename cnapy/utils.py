@@ -119,9 +119,13 @@ def show_unknown_error_box(exstr):
     msgBox.setTextFormat(Qt.RichText)
 
     msgBox.setText(
-        f"<p>{exstr}</p><p><b> Please report the problem to:</b></p>"
-        + "<p><a href='https://github.com/cnapy-org/CNApy/issues'>"
-        + "https://github.com/cnapy-org/CNApy/issues</a></p>"
+        f"<p>{exstr}</p><p><b> Please report the problem to this fork:</b></p>"
+        + "<p><a href='https://github.com/jyryu3161/CNApy/issues'>"
+        + "https://github.com/jyryu3161/CNApy/issues</a></p>"
+        + "<p>If the issue appears to be in upstream CNApy functionality, "
+        + "you can alternatively report it to "
+        + "<a href='https://github.com/cnapy-org/CNApy/issues'>"
+        + "https://github.com/cnapy-org/CNApy/issues</a>.</p>"
     )
     msgBox.setIcon(QMessageBox.Warning)
     msgBox.exec()

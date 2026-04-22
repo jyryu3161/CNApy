@@ -22,11 +22,6 @@ This module provides functionality for:
 - Save/load custom media compositions
 - Apply media to current model (set exchange reaction bounds)
 - Display current media information
-
-배지(배양 배지) 관리 기능:
-- 박테리아, 식물세포, 동물세포용 사전 정의 배지 템플릿
-- 사용자 정의 배지 저장/로드
-- 현재 모델에 배지 적용
 """
 
 import json

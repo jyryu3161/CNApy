@@ -118,5 +118,6 @@ include = ["cnapy*"]
 ]
 
 [project.urls]
-Homepage = "https://github.com/cnapy-org/CNApy"
-Issues = "https://github.com/cnapy-org/CNApy/issues"
+Homepage = "https://github.com/jyryu3161/CNApy"
+Issues = "https://github.com/jyryu3161/CNApy/issues"
+Upstream = "https://github.com/cnapy-org/CNApy"

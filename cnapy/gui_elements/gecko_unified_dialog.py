@@ -4,9 +4,9 @@ gecko_unified_dialog.py
 Unified GECKO workflow dialog.
 
 Left sidebar:
-  [전제 조건]
+  [Prerequisite]
     Build ecModel
-  [분석 도구]
+  [Analysis tools]
     Enzyme Usage Report
     Proteomics Integration
     kcat What-if Analysis

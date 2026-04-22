@@ -208,7 +208,7 @@ DEFAULT_TEMPLATES = [
             "EX_succ(e)": (0, 1000),
         },
     ),
-    # ==================== 스트레스 조건 (Stress Conditions) ====================
+    # ==================== Stress Conditions ====================
     ScenarioTemplate(
         name="Nitrogen Limitation",
         description="Limited nitrogen source (ammonia).",

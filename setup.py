@@ -29,9 +29,6 @@ setup(
             "data/escher_cnapy.html",
             "data/escher.min.js",
         ],
-        "cnapy.agents": [
-            "config/*.yaml",
-        ],
     },
     include_package_data=True,
 )

@@ -523,7 +523,7 @@ class FluxConstraintSlider(QWidget):
         self.percent_slider.setValue(100)
         self.percent_slider.valueChanged.connect(self._handle_percent_change)
         self.layout().addWidget(self.percent_slider)
-        self.percent_slider.setEnabled(False)  # 활성화는 토글 시점에
+        self.percent_slider.setEnabled(False)  # enabled on toggle
 
         percent_row = QHBoxLayout()
         self.percent_label = QLabel("100% of baseline")
@@ -594,7 +594,7 @@ class FluxConstraintSlider(QWidget):
         else:
             current = (lb + ub) / 2
 
-        # 기준값이 0이면 퍼센트 조절이 무의미하므로 최소값을 abs_tol로 대체
+        # If the baseline is 0 the percent control is meaningless, so fall back to abs_tol
         self.baseline_value = current if current is not None else 0.0
         if abs(self.baseline_value) < self.map_view.appdata.abs_tol:
             self.baseline_value = self.map_view.appdata.abs_tol
@@ -609,7 +609,7 @@ class FluxConstraintSlider(QWidget):
         self.bounds_label.setText(f"Bounds: [{lb}, {ub}]")
         self.percent_label.setText(f"100% of baseline ({self.baseline_value})")
 
-        # 퍼센트 슬라이더 기본 활성화 및 동기화
+        # Enable the percent slider by default and sync it
         self.percent_toggle.blockSignals(True)
         self.percent_toggle.setChecked(True)
         self.percent_slider.setEnabled(True)

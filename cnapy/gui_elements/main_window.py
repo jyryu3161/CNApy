@@ -1879,17 +1879,17 @@ class MainWindow(QMainWindow):
                         try:
                             if not os.path.exists(backup_path):
                                 shutil.copy2(filename, backup_path)
-                            backup_info = f"원본 파일은 `{backup_path}`로 백업되었습니다."
+                            backup_info = f"The original file has been backed up to `{backup_path}`."
                         except OSError as exc:
                             backup_info = (
-                                f"원본 백업을 만들지 못했습니다 ({exc}). "
-                                "저장 전에 수동으로 원본을 보관해 두세요."
+                                f"Failed to create a backup of the original file ({exc}). "
+                                "Please preserve the original manually before saving."
                             )
                         QMessageBox.information(
                             self,
-                            "ecModel 마이그레이션",
-                            "기존 CNApy 프로젝트의 ecModel 부호 규약이 GECKO 3.0 "
-                            "표준으로 업데이트되었습니다.\n\n" + backup_info,
+                            "ecModel migration",
+                            "The ecModel sign convention of this CNApy project has been "
+                            "updated to the GECKO 3.0 standard.\n\n" + backup_info,
                         )
                 else:
                     self.appdata.project.ec_model_data = _ECModelData()

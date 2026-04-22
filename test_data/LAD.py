@@ -15,7 +15,7 @@ class LAD(Simulator.Simulator):
         lower_bounds = self.lower_boundary_constraints.copy()
         upper_bounds = self.upper_boundary_constraints.copy()
 
-        # Infinite bounds 처리
+        # Handle infinite bounds
         if not inf_flag:
             for key in lower_bounds:
                 if lower_bounds[key] == float("-inf"):
@@ -30,17 +30,17 @@ class LAD(Simulator.Simulator):
         m = Model("RNASeq_DirectFlux")
         m.setParam("OutputFlag", 0)
 
-        # weight threshold를 적용하지 않고 opt_flux 기준으로 필터링
+        # Filter by opt_flux without applying a weight threshold
         target_reactions = {rid: w for rid, w in opt_flux.items() if rid in model_reactions and abs(w) > 0.01}
 
         if not target_reactions:
             print("No valid reactions above threshold.")
             return 1, None, None
 
-        # Variable 생성
+        # Variable creation
         v, f, b, delta = {}, {}, {}, {}
         for reaction_id in model_reactions:
-            # flux constraints 우선 적용
+            # Apply flux constraints first
             if reaction_id in flux_constraints:
                 lb, ub = flux_constraints[reaction_id]
             else:
@@ -55,7 +55,7 @@ class LAD(Simulator.Simulator):
 
         m.update()
 
-        # Flux decomposition 및 irreversibility 제약
+        # Flux decomposition and irreversibility constraints
         for reaction_id in model_reactions:
             m.addConstr(v[reaction_id] == f[reaction_id] - b[reaction_id])
             if lower_bounds[reaction_id] >= 0:

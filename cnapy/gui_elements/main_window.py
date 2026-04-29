@@ -207,18 +207,16 @@ class MainWindow(QMainWindow):
         self.scenario_menu.addAction(media_management_action)
         media_management_action.triggered.connect(self.show_media_management)
 
-        self.scenario_menu.addSeparator()
-
         load_default_scenario_action = QAction("Apply default scenario flux values", self)
         self.scenario_menu.addAction(load_default_scenario_action)
         load_default_scenario_action.setIcon(QIcon(":/icons/d-font.png"))
         load_default_scenario_action.triggered.connect(self.load_default_scenario)
 
-        set_scenario_to_default_scenario_action = QAction(
-            "Set current scenario fluxes as default scenario fluxes", self
-        )
+        set_scenario_to_default_scenario_action = QAction("Set current scenario as default", self)
         self.scenario_menu.addAction(set_scenario_to_default_scenario_action)
         set_scenario_to_default_scenario_action.triggered.connect(self.set_scenario_to_default_scenario)
+
+        self.scenario_menu.addSeparator()
 
         load_scenario_action = QAction("Load scenario...", self)
         load_scenario_action.setIcon(self.style().standardIcon(QStyle.SP_DirIcon))
@@ -240,12 +238,14 @@ class MainWindow(QMainWindow):
         self.scenario_menu.addAction(save_scenario_as_action)
         save_scenario_as_action.triggered.connect(self.save_scenario_as)
 
-        undo_scenario_action = QAction("Undo scenario flux values edit", self)
+        self.scenario_menu.addSeparator()
+
+        undo_scenario_action = QAction("Undo scenario edit", self)
         undo_scenario_action.setIcon(QIcon(":/icons/undo.png"))
         self.scenario_menu.addAction(undo_scenario_action)
         undo_scenario_action.triggered.connect(self.undo_scenario_edit)
 
-        redo_scenario_action = QAction("Redo scenario flux values edit", self)
+        redo_scenario_action = QAction("Redo scenario edit", self)
         redo_scenario_action.setIcon(QIcon(":/icons/redo.png"))
         self.scenario_menu.addAction(redo_scenario_action)
         redo_scenario_action.triggered.connect(self.redo_scenario_edit)
@@ -254,10 +254,12 @@ class MainWindow(QMainWindow):
         self.scenario_menu.addAction(clear_scenario_action)
         clear_scenario_action.triggered.connect(self.clear_scenario)
 
-        clear_all_action = QAction("Clear all reaction box entries", self)
+        clear_all_action = QAction("Clear all reaction boxes", self)
         clear_all_action.setIcon(QIcon(":/icons/clear.png"))
         self.scenario_menu.addAction(clear_all_action)
         clear_all_action.triggered.connect(self.clear_all)
+
+        self.scenario_menu.addSeparator()
 
         self.reset_constraints_action = QAction("Reset model bounds to original", self)
         self.reset_constraints_action.setIcon(self.style().standardIcon(QStyle.SP_BrowserReload))
@@ -275,22 +277,24 @@ class MainWindow(QMainWindow):
         self.scenario_menu.addAction(merge_scenario_action)
         merge_scenario_action.triggered.connect(self.merge_scenario)
 
-        set_model_bounds_to_scenario_action = QAction("Use scenario flux values as model bounds", self)
+        set_model_bounds_to_scenario_action = QAction("Use scenario as model bounds", self)
         self.scenario_menu.addAction(set_model_bounds_to_scenario_action)
         set_model_bounds_to_scenario_action.triggered.connect(self.set_model_bounds_to_scenario)
-
-        pin_scenario_reactions_action = QAction("Pin all scenario reactions to top of reaction list", self)
-        self.scenario_menu.addAction(pin_scenario_reactions_action)
-        pin_scenario_reactions_action.triggered.connect(self.pin_scenario_reactions)
-
-        unpin_all_reactions_action = QAction("Unpin all reactions in reaction list", self)
-        self.scenario_menu.addAction(unpin_all_reactions_action)
-        unpin_all_reactions_action.triggered.connect(self.centralWidget().reaction_list.unpin_all)
 
         make_scenario_feasible_action = QAction("Make scenario feasible...", self)
         make_scenario_feasible_action.triggered.connect(self.make_scenario_feasible)
         self.scenario_menu.addAction(make_scenario_feasible_action)
         self.make_scenario_feasible_dialog = None
+
+        self.scenario_menu.addSeparator()
+
+        pin_scenario_reactions_action = QAction("Pin scenario reactions to top", self)
+        self.scenario_menu.addAction(pin_scenario_reactions_action)
+        pin_scenario_reactions_action.triggered.connect(self.pin_scenario_reactions)
+
+        unpin_all_reactions_action = QAction("Unpin all reactions", self)
+        self.scenario_menu.addAction(unpin_all_reactions_action)
+        unpin_all_reactions_action.triggered.connect(self.centralWidget().reaction_list.unpin_all)
 
         self.scenario_menu.addSeparator()
 

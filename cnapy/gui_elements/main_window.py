@@ -320,15 +320,15 @@ class MainWindow(QMainWindow):
         self.clipboard_menu.addAction(clipboard_arithmetics_action)
         clipboard_arithmetics_action.triggered.connect(self.clipboard_arithmetics)
 
-        save_fluxes_as_csv_action = QAction("Save flux solution as comma-separated .csv...", self)
+        save_fluxes_as_csv_action = QAction("Save flux solution as CSV...", self)
         self.clipboard_menu.addAction(save_fluxes_as_csv_action)
         save_fluxes_as_csv_action.triggered.connect(self.save_fluxes_as_csv)
 
-        save_fluxes_as_xlsx_action = QAction("Save flux solution as Excel .xlsx...", self)
+        save_fluxes_as_xlsx_action = QAction("Save flux solution as Excel...", self)
         self.clipboard_menu.addAction(save_fluxes_as_xlsx_action)
         save_fluxes_as_xlsx_action.triggered.connect(self.save_fluxes_as_xlsx)
 
-        all_in_out_fluxes_action = QAction("Export all in/out fluxes as an XLSX table...", self)
+        all_in_out_fluxes_action = QAction("Save in/out fluxes per metabolite as Excel...", self)
         all_in_out_fluxes_action.triggered.connect(self.all_in_out_fluxes)
         self.clipboard_menu.addAction(all_in_out_fluxes_action)
 

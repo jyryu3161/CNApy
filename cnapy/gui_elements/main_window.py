@@ -158,6 +158,8 @@ class MainWindow(QMainWindow):
             )
             gecko_example_menu.addAction(act)
 
+        self.file_menu.addSeparator()
+
         open_project_action = QAction("&Open project...", self)
         open_project_action.setShortcut("Ctrl+O")
         self.file_menu.addAction(open_project_action)
@@ -165,6 +167,8 @@ class MainWindow(QMainWindow):
 
         self.recent_cna_menu = self.file_menu.addMenu("Open recent")
         self.recent_cna_actions: dict[str, QAction] = {}
+
+        self.file_menu.addSeparator()
 
         self.save_project_action = QAction("&Save project", self)
         self.save_project_action.setShortcut("Ctrl+S")
@@ -176,6 +180,8 @@ class MainWindow(QMainWindow):
         self.file_menu.addAction(save_as_project_action)
         save_as_project_action.triggered.connect(self.save_project_as)
 
+        self.file_menu.addSeparator()
+
         export_sbml_action = QAction("Export SBML...", self)
         self.file_menu.addAction(export_sbml_action)
         export_sbml_action.triggered.connect(self.export_sbml)
@@ -184,9 +190,13 @@ class MainWindow(QMainWindow):
         self.file_menu.addAction(export_excel_action)
         export_excel_action.triggered.connect(self.export_excel)
 
+        self.file_menu.addSeparator()
+
         download_examples = QAction("Download CNApy example projects...", self)
         self.file_menu.addAction(download_examples)
         download_examples.triggered.connect(self.download_examples)
+
+        self.file_menu.addSeparator()
 
         exit_action = QAction("Exit", self)
         exit_action.setShortcut("Ctrl+Q")

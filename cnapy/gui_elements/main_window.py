@@ -352,20 +352,19 @@ class MainWindow(QMainWindow):
         separator.setSeparator(True)
         self.escher_map_actions.addAction(separator)
 
-        add_map_action = QAction("Add new map", self)
+        add_map_action = QAction("Add new CNApy map", self)
         add_map_action.triggered.connect(self.central_widget.add_map)
         self.map_menu.addAction(add_map_action)
 
         add_cnapy_from_escher_action = QAction("Add CNApy map from Escher JSON...", self)
         add_cnapy_from_escher_action.triggered.connect(self.central_widget.load_cnapy_map_from_escher_json)
         self.map_menu.addAction(add_cnapy_from_escher_action)
-        self.cnapy_map_actions.addAction(add_cnapy_from_escher_action)
 
-        add_escher_map_action = QAction("Add new map from Escher SVG...", self)
+        add_escher_map_action = QAction("Add CNApy map from Escher SVG...", self)
         self.map_menu.addAction(add_escher_map_action)
         add_escher_map_action.triggered.connect(self.add_escher_map)
 
-        open_escher = QAction("Add interactive Escher map", self)
+        open_escher = QAction("Add interactive Escher map...", self)
         self.map_menu.addAction(open_escher)
         open_escher.triggered.connect(lambda: self.central_widget.add_map(escher=True))
 
@@ -373,10 +372,6 @@ class MainWindow(QMainWindow):
         self.map_menu.addAction(self.change_map_name_action)
         self.change_map_name_action.triggered.connect(self.change_map_name)
         self.change_map_name_action.setEnabled(False)
-
-        show_model_bounds_action = QAction("Show flux bounds in reaction boxes", self)
-        show_model_bounds_action.triggered.connect(self.show_model_bounds)
-        self.map_menu.addAction(show_model_bounds_action)
 
         self.change_background_action = QAction("Change map background", self)
         self.change_background_action.triggered.connect(self.change_background)
@@ -395,6 +390,10 @@ class MainWindow(QMainWindow):
         self.dec_bg_size_action.setEnabled(False)
         self.cnapy_map_actions.addAction(self.dec_bg_size_action)
 
+        cnapy_sep = QAction(self)
+        cnapy_sep.setSeparator(True)
+        self.cnapy_map_actions.addAction(cnapy_sep)
+
         load_maps_action = QAction("Load reaction box positions...", self)
         load_maps_action.triggered.connect(self.load_box_positions)
         self.cnapy_map_actions.addAction(load_maps_action)
@@ -403,6 +402,10 @@ class MainWindow(QMainWindow):
         self.save_box_positions_action.triggered.connect(self.save_box_positions)
         self.save_box_positions_action.setEnabled(False)
         self.cnapy_map_actions.addAction(self.save_box_positions_action)
+
+        cnapy_sep = QAction(self)
+        cnapy_sep.setSeparator(True)
+        self.cnapy_map_actions.addAction(cnapy_sep)
 
         self.inc_box_size_action = QAction("Increase box size", self)
         self.inc_box_size_action.setShortcut("Ctrl++")
@@ -422,7 +425,15 @@ class MainWindow(QMainWindow):
         self.reset_map_size_action.setEnabled(False)
         self.cnapy_map_actions.addAction(self.reset_map_size_action)
 
-        self.cnapy_screenshot_action = QAction("Take map view screenshot...", self)
+        cnapy_sep = QAction(self)
+        cnapy_sep.setSeparator(True)
+        self.cnapy_map_actions.addAction(cnapy_sep)
+
+        show_model_bounds_action = QAction("Show flux bounds in reaction boxes", self)
+        show_model_bounds_action.triggered.connect(self.show_model_bounds)
+        self.cnapy_map_actions.addAction(show_model_bounds_action)
+
+        self.cnapy_screenshot_action = QAction("Take map screenshot...", self)
         self.cnapy_screenshot_action.triggered.connect(self.take_screenshot_cnapy)
         self.cnapy_map_actions.addAction(self.cnapy_screenshot_action)
 
@@ -466,7 +477,7 @@ class MainWindow(QMainWindow):
         )
         self.escher_map_actions.addAction(escher_settings_action)
 
-        self.escher_edit_mode_action = QAction("Edit mode")
+        self.escher_edit_mode_action = QAction("Escher edit mode")
         self.escher_edit_mode_action.triggered.connect(self.set_escher_edit_mode)
         self.escher_edit_mode_action.setCheckable(True)
         self.escher_map_actions.addAction(self.escher_edit_mode_action)

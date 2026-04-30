@@ -700,15 +700,13 @@ class MainWindow(QMainWindow):
         model_management_action.triggered.connect(self.show_model_management)
         self.model_menu.addAction(model_management_action)
 
-        self.model_menu.addSeparator()
-
         load_flux_data_action = QAction("Load External Flux Data...", self)
         load_flux_data_action.triggered.connect(self.show_flux_data_dialog)
         self.model_menu.addAction(load_flux_data_action)
 
         self.model_menu.addSeparator()
 
-        show_model_stats_action = QAction("Show model stats", self)
+        show_model_stats_action = QAction("Show Model Stats", self)
         show_model_stats_action.triggered.connect(self.execute_print_model_stats)
         self.model_menu.addAction(show_model_stats_action)
 
@@ -734,17 +732,21 @@ class MainWindow(QMainWindow):
         self.config_menu.addAction(config_action)
         config_action.triggered.connect(self.show_gurobi_configuration_dialog)
 
+        self.config_menu.addSeparator()
+
         show_console_action = QAction("Show Console", self)
         self.config_menu.addAction(show_console_action)
         show_console_action.triggered.connect(self.show_console)
 
-        show_map_view = QAction("Show map view", self)
+        show_map_view = QAction("Show Map View", self)
         self.config_menu.addAction(show_map_view)
         show_map_view.triggered.connect(self.show_map_view)
 
-        show_model_view_action = QAction("Show model view", self)
+        show_model_view_action = QAction("Show Model View", self)
         self.config_menu.addAction(show_model_view_action)
         show_model_view_action.triggered.connect(self.show_model_view)
+
+        self.config_menu.addSeparator()
 
         about_action = QAction("About CNApy...", self)
         about_action.setMenuRole(QAction.NoRole)

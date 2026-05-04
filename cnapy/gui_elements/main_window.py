@@ -158,6 +158,8 @@ class MainWindow(QMainWindow):
             )
             gecko_example_menu.addAction(act)
 
+        self.file_menu.addSeparator()
+
         open_project_action = QAction("&Open project...", self)
         open_project_action.setShortcut("Ctrl+O")
         self.file_menu.addAction(open_project_action)
@@ -165,6 +167,8 @@ class MainWindow(QMainWindow):
 
         self.recent_cna_menu = self.file_menu.addMenu("Open recent")
         self.recent_cna_actions: dict[str, QAction] = {}
+
+        self.file_menu.addSeparator()
 
         self.save_project_action = QAction("&Save project", self)
         self.save_project_action.setShortcut("Ctrl+S")
@@ -176,6 +180,8 @@ class MainWindow(QMainWindow):
         self.file_menu.addAction(save_as_project_action)
         save_as_project_action.triggered.connect(self.save_project_as)
 
+        self.file_menu.addSeparator()
+
         export_sbml_action = QAction("Export SBML...", self)
         self.file_menu.addAction(export_sbml_action)
         export_sbml_action.triggered.connect(self.export_sbml)
@@ -184,9 +190,13 @@ class MainWindow(QMainWindow):
         self.file_menu.addAction(export_excel_action)
         export_excel_action.triggered.connect(self.export_excel)
 
+        self.file_menu.addSeparator()
+
         download_examples = QAction("Download CNApy example projects...", self)
         self.file_menu.addAction(download_examples)
         download_examples.triggered.connect(self.download_examples)
+
+        self.file_menu.addSeparator()
 
         exit_action = QAction("Exit", self)
         exit_action.setShortcut("Ctrl+Q")
@@ -207,18 +217,16 @@ class MainWindow(QMainWindow):
         self.scenario_menu.addAction(media_management_action)
         media_management_action.triggered.connect(self.show_media_management)
 
-        self.scenario_menu.addSeparator()
-
         load_default_scenario_action = QAction("Apply default scenario flux values", self)
         self.scenario_menu.addAction(load_default_scenario_action)
         load_default_scenario_action.setIcon(QIcon(":/icons/d-font.png"))
         load_default_scenario_action.triggered.connect(self.load_default_scenario)
 
-        set_scenario_to_default_scenario_action = QAction(
-            "Set current scenario fluxes as default scenario fluxes", self
-        )
+        set_scenario_to_default_scenario_action = QAction("Set current scenario as default", self)
         self.scenario_menu.addAction(set_scenario_to_default_scenario_action)
         set_scenario_to_default_scenario_action.triggered.connect(self.set_scenario_to_default_scenario)
+
+        self.scenario_menu.addSeparator()
 
         load_scenario_action = QAction("Load scenario...", self)
         load_scenario_action.setIcon(self.style().standardIcon(QStyle.SP_DirIcon))
@@ -240,12 +248,14 @@ class MainWindow(QMainWindow):
         self.scenario_menu.addAction(save_scenario_as_action)
         save_scenario_as_action.triggered.connect(self.save_scenario_as)
 
-        undo_scenario_action = QAction("Undo scenario flux values edit", self)
+        self.scenario_menu.addSeparator()
+
+        undo_scenario_action = QAction("Undo scenario edit", self)
         undo_scenario_action.setIcon(QIcon(":/icons/undo.png"))
         self.scenario_menu.addAction(undo_scenario_action)
         undo_scenario_action.triggered.connect(self.undo_scenario_edit)
 
-        redo_scenario_action = QAction("Redo scenario flux values edit", self)
+        redo_scenario_action = QAction("Redo scenario edit", self)
         redo_scenario_action.setIcon(QIcon(":/icons/redo.png"))
         self.scenario_menu.addAction(redo_scenario_action)
         redo_scenario_action.triggered.connect(self.redo_scenario_edit)
@@ -254,10 +264,12 @@ class MainWindow(QMainWindow):
         self.scenario_menu.addAction(clear_scenario_action)
         clear_scenario_action.triggered.connect(self.clear_scenario)
 
-        clear_all_action = QAction("Clear all reaction box entries", self)
+        clear_all_action = QAction("Clear all reaction boxes", self)
         clear_all_action.setIcon(QIcon(":/icons/clear.png"))
         self.scenario_menu.addAction(clear_all_action)
         clear_all_action.triggered.connect(self.clear_all)
+
+        self.scenario_menu.addSeparator()
 
         self.reset_constraints_action = QAction("Reset model bounds to original", self)
         self.reset_constraints_action.setIcon(self.style().standardIcon(QStyle.SP_BrowserReload))
@@ -275,15 +287,22 @@ class MainWindow(QMainWindow):
         self.scenario_menu.addAction(merge_scenario_action)
         merge_scenario_action.triggered.connect(self.merge_scenario)
 
-        set_model_bounds_to_scenario_action = QAction("Use scenario flux values as model bounds", self)
+        set_model_bounds_to_scenario_action = QAction("Use scenario as model bounds", self)
         self.scenario_menu.addAction(set_model_bounds_to_scenario_action)
         set_model_bounds_to_scenario_action.triggered.connect(self.set_model_bounds_to_scenario)
 
-        pin_scenario_reactions_action = QAction("Pin all scenario reactions to top of reaction list", self)
+        make_scenario_feasible_action = QAction("Make scenario feasible...", self)
+        make_scenario_feasible_action.triggered.connect(self.make_scenario_feasible)
+        self.scenario_menu.addAction(make_scenario_feasible_action)
+        self.make_scenario_feasible_dialog = None
+
+        self.scenario_menu.addSeparator()
+
+        pin_scenario_reactions_action = QAction("Pin scenario reactions to top", self)
         self.scenario_menu.addAction(pin_scenario_reactions_action)
         pin_scenario_reactions_action.triggered.connect(self.pin_scenario_reactions)
 
-        unpin_all_reactions_action = QAction("Unpin all reactions in reaction list", self)
+        unpin_all_reactions_action = QAction("Unpin all reactions", self)
         self.scenario_menu.addAction(unpin_all_reactions_action)
         unpin_all_reactions_action.triggered.connect(self.centralWidget().reaction_list.unpin_all)
 
@@ -311,13 +330,17 @@ class MainWindow(QMainWindow):
         self.clipboard_menu.addAction(clipboard_arithmetics_action)
         clipboard_arithmetics_action.triggered.connect(self.clipboard_arithmetics)
 
-        save_fluxes_as_csv_action = QAction("Save flux solution as comma-separated .csv...", self)
+        save_fluxes_as_csv_action = QAction("Save flux solution as CSV...", self)
         self.clipboard_menu.addAction(save_fluxes_as_csv_action)
         save_fluxes_as_csv_action.triggered.connect(self.save_fluxes_as_csv)
 
-        save_fluxes_as_xlsx_action = QAction("Save flux solution as Excel .xlsx...", self)
+        save_fluxes_as_xlsx_action = QAction("Save flux solution as Excel...", self)
         self.clipboard_menu.addAction(save_fluxes_as_xlsx_action)
         save_fluxes_as_xlsx_action.triggered.connect(self.save_fluxes_as_xlsx)
+
+        all_in_out_fluxes_action = QAction("Save in/out fluxes per metabolite as Excel...", self)
+        all_in_out_fluxes_action.triggered.connect(self.all_in_out_fluxes)
+        self.clipboard_menu.addAction(all_in_out_fluxes_action)
 
         self.map_menu = self.menu.addMenu("Map")
         self.cnapy_map_actions = QActionGroup(self)
@@ -329,20 +352,19 @@ class MainWindow(QMainWindow):
         separator.setSeparator(True)
         self.escher_map_actions.addAction(separator)
 
-        add_map_action = QAction("Add new map", self)
+        add_map_action = QAction("Add new CNApy map", self)
         add_map_action.triggered.connect(self.central_widget.add_map)
         self.map_menu.addAction(add_map_action)
 
         add_cnapy_from_escher_action = QAction("Add CNApy map from Escher JSON...", self)
         add_cnapy_from_escher_action.triggered.connect(self.central_widget.load_cnapy_map_from_escher_json)
         self.map_menu.addAction(add_cnapy_from_escher_action)
-        self.cnapy_map_actions.addAction(add_cnapy_from_escher_action)
 
-        add_escher_map_action = QAction("Add new map from Escher SVG...", self)
+        add_escher_map_action = QAction("Add CNApy map from Escher SVG...", self)
         self.map_menu.addAction(add_escher_map_action)
         add_escher_map_action.triggered.connect(self.add_escher_map)
 
-        open_escher = QAction("Add interactive Escher map", self)
+        open_escher = QAction("Add interactive Escher map...", self)
         self.map_menu.addAction(open_escher)
         open_escher.triggered.connect(lambda: self.central_widget.add_map(escher=True))
 
@@ -368,6 +390,10 @@ class MainWindow(QMainWindow):
         self.dec_bg_size_action.setEnabled(False)
         self.cnapy_map_actions.addAction(self.dec_bg_size_action)
 
+        cnapy_sep = QAction(self)
+        cnapy_sep.setSeparator(True)
+        self.cnapy_map_actions.addAction(cnapy_sep)
+
         load_maps_action = QAction("Load reaction box positions...", self)
         load_maps_action.triggered.connect(self.load_box_positions)
         self.cnapy_map_actions.addAction(load_maps_action)
@@ -376,6 +402,10 @@ class MainWindow(QMainWindow):
         self.save_box_positions_action.triggered.connect(self.save_box_positions)
         self.save_box_positions_action.setEnabled(False)
         self.cnapy_map_actions.addAction(self.save_box_positions_action)
+
+        cnapy_sep = QAction(self)
+        cnapy_sep.setSeparator(True)
+        self.cnapy_map_actions.addAction(cnapy_sep)
 
         self.inc_box_size_action = QAction("Increase box size", self)
         self.inc_box_size_action.setShortcut("Ctrl++")
@@ -395,7 +425,15 @@ class MainWindow(QMainWindow):
         self.reset_map_size_action.setEnabled(False)
         self.cnapy_map_actions.addAction(self.reset_map_size_action)
 
-        self.cnapy_screenshot_action = QAction("Take map view screenshot...", self)
+        cnapy_sep = QAction(self)
+        cnapy_sep.setSeparator(True)
+        self.cnapy_map_actions.addAction(cnapy_sep)
+
+        show_model_bounds_action = QAction("Show flux bounds in reaction boxes", self)
+        show_model_bounds_action.triggered.connect(self.show_model_bounds)
+        self.cnapy_map_actions.addAction(show_model_bounds_action)
+
+        self.cnapy_screenshot_action = QAction("Take map screenshot...", self)
         self.cnapy_screenshot_action.triggered.connect(self.take_screenshot_cnapy)
         self.cnapy_map_actions.addAction(self.cnapy_screenshot_action)
 
@@ -439,7 +477,7 @@ class MainWindow(QMainWindow):
         )
         self.escher_map_actions.addAction(escher_settings_action)
 
-        self.escher_edit_mode_action = QAction("Edit mode")
+        self.escher_edit_mode_action = QAction("Escher edit mode")
         self.escher_edit_mode_action.triggered.connect(self.set_escher_edit_mode)
         self.escher_edit_mode_action.setCheckable(True)
         self.escher_map_actions.addAction(self.escher_edit_mode_action)
@@ -450,13 +488,22 @@ class MainWindow(QMainWindow):
 
         self.analysis_menu = self.menu.addMenu("Analysis")
 
+        # === Base flux analysis ===
         fba_action = QAction("Flux Balance Analysis (FBA)", self)
         fba_action.triggered.connect(self.fba)
         self.analysis_menu.addAction(fba_action)
 
-        dfba_action = QAction("Dynamic FBA (dFBA)...", self)
-        dfba_action.triggered.connect(self.show_dynamic_fba)
-        self.analysis_menu.addAction(dfba_action)
+        pfba_action = QAction("Parsimonious Flux Balance Analysis (pFBA)", self)
+        pfba_action.triggered.connect(self.pfba)
+        self.analysis_menu.addAction(pfba_action)
+
+        fva_action = QAction("Flux Variability Analysis (FVA)", self)
+        fva_action.triggered.connect(self.fva)
+        self.analysis_menu.addAction(fva_action)
+
+        sampling_action = QAction("Flux Sampling...", self)
+        sampling_action.triggered.connect(self.perform_flux_sampling)
+        self.analysis_menu.addAction(sampling_action)
 
         moma_action = QAction("Linear MOMA", self)
         moma_action.triggered.connect(self.perform_linear_moma)
@@ -471,84 +518,13 @@ class MainWindow(QMainWindow):
         self.auto_fba_action.setCheckable(True)
         self.analysis_menu.addAction(self.auto_fba_action)
 
-        pfba_action = QAction("Parsimonious Flux Balance Analysis (pFBA)", self)
-        pfba_action.triggered.connect(self.pfba)
-        self.analysis_menu.addAction(pfba_action)
-
-        fva_action = QAction("Flux Variability Analysis (FVA)", self)
-        fva_action.triggered.connect(self.fva)
-        self.analysis_menu.addAction(fva_action)
-
-        sampling_action = QAction("Flux Sampling...", self)
-        sampling_action.triggered.connect(self.perform_flux_sampling)
-        self.analysis_menu.addAction(sampling_action)
-
-        make_scenario_feasible_action = QAction("Make scenario feasible...", self)
-        make_scenario_feasible_action.triggered.connect(self.make_scenario_feasible)
-        self.analysis_menu.addAction(make_scenario_feasible_action)
-        self.make_scenario_feasible_dialog = None
+        dfba_action = QAction("Dynamic FBA (dFBA)...", self)
+        dfba_action.triggered.connect(self.show_dynamic_fba)
+        self.analysis_menu.addAction(dfba_action)
 
         self.analysis_menu.addSeparator()
 
-        self.efm_menu = self.analysis_menu.addMenu("Elementary Flux Modes")
-
-        self.efmtool_action = QAction("Compute Elementary Flux Modes via EFMtool...", self)
-        self.efmtool_action.triggered.connect(self.efmtool)
-        self.efm_menu.addAction(self.efmtool_action)
-
-        load_modes_action = QAction("Load modes...", self)
-        self.efm_menu.addAction(load_modes_action)
-        load_modes_action.triggered.connect(self.load_modes)
-
-        self.sd_menu = self.analysis_menu.addMenu("Computational Strain Design")
-        sd_action = QAction("Compute Strain Designs...", self)
-        sd_action.triggered.connect(self.strain_design)
-        self.sd_menu.addAction(sd_action)
-        self.sd_dialog = None
-        self.sd_sols = None
-
-        load_sd_action = QAction("Load Strain Designs...", self)
-        self.sd_menu.addAction(load_sd_action)
-        load_sd_action.triggered.connect(self.load_strain_designs)
-
-        sd_action = QAction("Compute Minimal Cut Sets (legacy)...", self)
-        sd_action.triggered.connect(self.mcs)
-        self.sd_menu.addAction(sd_action)
-        self.mcs_dialog = None
-
-        load_mcs_action = QAction("Load Minimal Cut Sets (legacy)...", self)
-        self.sd_menu.addAction(load_mcs_action)
-        load_mcs_action.triggered.connect(self.load_mcs)
-
-        self.sd_menu.addSeparator()
-        batch_moma_room_action = QAction("Batch MOMA/ROOM Analysis...", self)
-        batch_moma_room_action.triggered.connect(self.show_batch_moma_room)
-        self.sd_menu.addAction(batch_moma_room_action)
-
-        fseof_action = QAction("FSEOF Analysis...", self)
-        fseof_action.triggered.connect(self.show_fseof)
-        self.sd_menu.addAction(fseof_action)
-
-        fvseof_action = QAction("FVSEOF Analysis (FVA-based)...", self)
-        fvseof_action.triggered.connect(self.show_fvseof)
-        self.sd_menu.addAction(fvseof_action)
-
-        self.flux_optimization_action = QAction("Flux optimization...", self)
-        self.flux_optimization_action.triggered.connect(self.optimize_flux)
-        self.analysis_menu.addAction(self.flux_optimization_action)
-
-        self.yield_optimization_action = QAction("Yield optimization...", self)
-        self.yield_optimization_action.triggered.connect(self.optimize_yield)
-        self.analysis_menu.addAction(self.yield_optimization_action)
-
-        plot_space_action = QAction("Plot phase plane/yield space...", self)
-        plot_space_action.triggered.connect(self.plot_space)
-        self.analysis_menu.addAction(plot_space_action)
-
-        flux_response_action = QAction("Flux Response Analysis...", self)
-        flux_response_action.triggered.connect(self.perform_flux_response_analysis)
-        self.analysis_menu.addAction(flux_response_action)
-
+        # === Phenotype screening ===
         gene_essentiality_action = QAction("Gene Essentiality Analysis...", self)
         gene_essentiality_action.triggered.connect(self.show_gene_essentiality)
         self.analysis_menu.addAction(gene_essentiality_action)
@@ -557,26 +533,96 @@ class MainWindow(QMainWindow):
         robustness_analysis_action.triggered.connect(self.show_robustness_analysis)
         self.analysis_menu.addAction(robustness_analysis_action)
 
+        flux_response_action = QAction("Flux Response Analysis...", self)
+        flux_response_action.triggered.connect(self.perform_flux_response_analysis)
+        self.analysis_menu.addAction(flux_response_action)
+
+        plot_space_action = QAction("Plot phase plane / yield space...", self)
+        plot_space_action.triggered.connect(self.plot_space)
+        self.analysis_menu.addAction(plot_space_action)
+
         self.analysis_menu.addSeparator()
 
-        # Omics integration menu
-        self.omics_menu = self.analysis_menu.addMenu("Omics Integration")
-        self.omics_dialog = None  # Singleton for non-modal dialog
+        # === Optimization ===
+        self.flux_optimization_action = QAction("Flux optimization...", self)
+        self.flux_optimization_action.triggered.connect(self.optimize_flux)
+        self.analysis_menu.addAction(self.flux_optimization_action)
 
+        self.yield_optimization_action = QAction("Yield optimization...", self)
+        self.yield_optimization_action.triggered.connect(self.optimize_yield)
+        self.analysis_menu.addAction(self.yield_optimization_action)
+
+        self.analysis_menu.addSeparator()
+
+        # === Strain Design (submenu) ===
+        self.sd_menu = self.analysis_menu.addMenu("Strain Design")
+        self.sd_dialog = None
+        self.sd_sols = None
+        self.mcs_dialog = None
+
+        sd_action = QAction("Compute Strain Designs...", self)
+        sd_action.triggered.connect(self.strain_design)
+        self.sd_menu.addAction(sd_action)
+
+        load_sd_action = QAction("Load Strain Designs...", self)
+        load_sd_action.triggered.connect(self.load_strain_designs)
+        self.sd_menu.addAction(load_sd_action)
+
+        self.sd_menu.addSeparator()
+
+        batch_moma_room_action = QAction("Batch MOMA/ROOM Screening...", self)
+        batch_moma_room_action.triggered.connect(self.show_batch_moma_room)
+        self.sd_menu.addAction(batch_moma_room_action)
+
+        fseof_action = QAction("FSEOF (overexpression targets)...", self)
+        fseof_action.triggered.connect(self.show_fseof)
+        self.sd_menu.addAction(fseof_action)
+
+        fvseof_action = QAction("FVSEOF (FVA-based)...", self)
+        fvseof_action.triggered.connect(self.show_fvseof)
+        self.sd_menu.addAction(fvseof_action)
+
+        self.sd_menu.addSeparator()
+
+        self.legacy_mcs_menu = self.sd_menu.addMenu("Legacy")
+        mcs_action = QAction("Compute Minimal Cut Sets...", self)
+        mcs_action.triggered.connect(self.mcs)
+        self.legacy_mcs_menu.addAction(mcs_action)
+
+        load_mcs_action = QAction("Load Minimal Cut Sets...", self)
+        load_mcs_action.triggered.connect(self.load_mcs)
+        self.legacy_mcs_menu.addAction(load_mcs_action)
+
+        self.analysis_menu.addSeparator()
+
+        # === Elementary Flux Modes (submenu) ===
+        self.efm_menu = self.analysis_menu.addMenu("Elementary Flux Modes")
+
+        self.efmtool_action = QAction("Compute Elementary Flux Modes via EFMtool...", self)
+        self.efmtool_action.triggered.connect(self.efmtool)
+        self.efm_menu.addAction(self.efmtool_action)
+
+        load_modes_action = QAction("Load modes...", self)
+        load_modes_action.triggered.connect(self.load_modes)
+        self.efm_menu.addAction(load_modes_action)
+
+        self.analysis_menu.addSeparator()
+
+        # === Constraint integration (Omics + GECKO, flat) ===
+        self.omics_dialog = None  # Singleton for non-modal dialog
         omics_dialog_action = QAction("Transcriptome-based Flux Prediction (LAD/E-Flux2)...", self)
         omics_dialog_action.triggered.connect(self.perform_omics_integration)
-        self.omics_menu.addAction(omics_dialog_action)
+        self.analysis_menu.addAction(omics_dialog_action)
 
-        self.analysis_menu.addSeparator()
-
-        # GECKO enzyme-constrained model menu
         self.gecko_dialog = None  # Singleton for non-modal dialog
-
-        gecko_action = QAction("Enzyme-Constrained Model (GECKO)…", self)
+        gecko_action = QAction("Enzyme-Constrained Model (GECKO)...", self)
         gecko_action.triggered.connect(self.show_gecko_dialog)
         self.analysis_menu.addAction(gecko_action)
 
-        self.thermodynamic_menu = self.analysis_menu.addMenu("Thermodynamic analyses")
+        self.analysis_menu.addSeparator()
+
+        # === Thermodynamics (submenu) ===
+        self.thermodynamic_menu = self.analysis_menu.addMenu("Thermodynamics")
 
         optmdf_action = QAction("OptMDFpathway...", self)
         optmdf_action.triggered.connect(self.perform_optmdfpathway)
@@ -586,7 +632,7 @@ class MainWindow(QMainWindow):
         tfba_action.triggered.connect(self.perform_thermodynamic_fba)
         self.thermodynamic_menu.addAction(tfba_action)
 
-        bottleneck_action = QAction("Thermodynamic bottleneck analysis...", self)
+        bottleneck_action = QAction("Thermodynamic Bottleneck Analysis...", self)
         bottleneck_action.triggered.connect(self.perform_bottleneck_analysis)
         self.thermodynamic_menu.addAction(bottleneck_action)
 
@@ -638,23 +684,12 @@ class MainWindow(QMainWindow):
 
         self.analysis_menu.addSeparator()
 
-        show_model_stats_action = QAction("Show model stats", self)
-        self.analysis_menu.addAction(show_model_stats_action)
-        show_model_stats_action.triggered.connect(self.execute_print_model_stats)
-
-        show_model_bounds_action = QAction("Show flux bounds in reaction boxes", self)
-        self.analysis_menu.addAction(show_model_bounds_action)
-        show_model_bounds_action.triggered.connect(self.show_model_bounds)
-
-        net_conversion_action = QAction("Net conversion of external metabolites", self)
-        self.analysis_menu.addAction(net_conversion_action)
+        # === Result inspection ===
+        net_conversion_action = QAction("Net Conversion of External Metabolites", self)
         net_conversion_action.triggered.connect(self.show_net_conversion)
+        self.analysis_menu.addAction(net_conversion_action)
 
-        all_in_out_fluxes_action = QAction("Export all in/out fluxes as an XLSX table...", self)
-        all_in_out_fluxes_action.triggered.connect(self.all_in_out_fluxes)
-        self.analysis_menu.addAction(all_in_out_fluxes_action)
-
-        in_out_flux_action = QAction("Compute in/out fluxes at single metabolite...", self)
+        in_out_flux_action = QAction("Compute In/Out Fluxes at Single Metabolite...", self)
         in_out_flux_action.triggered.connect(self.in_out_flux)
         self.analysis_menu.addAction(in_out_flux_action)
 
@@ -665,11 +700,15 @@ class MainWindow(QMainWindow):
         model_management_action.triggered.connect(self.show_model_management)
         self.model_menu.addAction(model_management_action)
 
-        self.model_menu.addSeparator()
-
         load_flux_data_action = QAction("Load External Flux Data...", self)
         load_flux_data_action.triggered.connect(self.show_flux_data_dialog)
         self.model_menu.addAction(load_flux_data_action)
+
+        self.model_menu.addSeparator()
+
+        show_model_stats_action = QAction("Show Model Stats", self)
+        show_model_stats_action.triggered.connect(self.execute_print_model_stats)
+        self.model_menu.addAction(show_model_stats_action)
 
         self.config_menu = self.menu.addMenu("Config")
 
@@ -693,17 +732,21 @@ class MainWindow(QMainWindow):
         self.config_menu.addAction(config_action)
         config_action.triggered.connect(self.show_gurobi_configuration_dialog)
 
+        self.config_menu.addSeparator()
+
         show_console_action = QAction("Show Console", self)
         self.config_menu.addAction(show_console_action)
         show_console_action.triggered.connect(self.show_console)
 
-        show_map_view = QAction("Show map view", self)
+        show_map_view = QAction("Show Map View", self)
         self.config_menu.addAction(show_map_view)
         show_map_view.triggered.connect(self.show_map_view)
 
-        show_model_view_action = QAction("Show model view", self)
+        show_model_view_action = QAction("Show Model View", self)
         self.config_menu.addAction(show_model_view_action)
         show_model_view_action.triggered.connect(self.show_model_view)
+
+        self.config_menu.addSeparator()
 
         about_action = QAction("About CNApy...", self)
         about_action.setMenuRole(QAction.NoRole)

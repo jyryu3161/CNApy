@@ -5,6 +5,14 @@ import numpy as np
 import pandas as pd
 import pytest
 
+# Pin tests to GLPK so the suite is reproducible regardless of the developer's
+# licensed solver state (e.g. an expired Gurobi license would otherwise break
+# bare ``cobra.Model(...)`` calls).
+try:
+    cobra.Configuration().solver = "glpk"
+except Exception:
+    pass
+
 
 @pytest.fixture(scope="session")
 def ecoli_core_model():

@@ -447,12 +447,20 @@ class ScenarioTab(QWidget):
             self.scenario_changed()
 
     def new_annotation_row(self, row: int):
-        self.annotations.setCellWidget(
-            row, ScenarioAnnotationColumn.Reaction_id, QComplReceivLineEdit(self, self.appdata.project.reaction_ids)
-        )
+        reaction_id_edit = QComplReceivLineEdit(self, self.appdata.project.reaction_ids)
+        reaction_id_edit.editingFinished.connect(self.annotation_reaction_id_edited)
+        self.annotations.setCellWidget(row, ScenarioAnnotationColumn.Reaction_id, reaction_id_edit)
         self.annotations.setItem(row, ScenarioAnnotationColumn.Key, QTableWidgetItem())
         self.annotations.setItem(row, ScenarioAnnotationColumn.Value, QTableWidgetItem())
         self.scenario_changed()
+
+    @Slot()
+    def annotation_reaction_id_edited(self):
+        reaction_id_edit: QComplReceivLineEdit = self.sender()
+        for row in range(self.annotations.rowCount()):
+            if self.annotations.cellWidget(row, ScenarioAnnotationColumn.Reaction_id) is reaction_id_edit:
+                self.cell_content_changed_annotations(row, ScenarioAnnotationColumn.Reaction_id)
+                break
 
     def new_reaction_row(self, row: int):
         item = QTableWidgetItem()

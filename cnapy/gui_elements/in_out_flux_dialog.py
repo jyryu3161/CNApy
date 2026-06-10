@@ -41,4 +41,4 @@ class InOutFluxDialog(QDialog):
 
     def compute(self):
         metabolite = self.metabolite_chooser.currentText()
-        self.appdata.window.centralWidget().in_out_fluxes(metabolite)
+        self.appdata.window.print_in_out_fluxes(metabolite)

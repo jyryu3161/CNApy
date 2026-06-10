@@ -853,12 +853,20 @@ class MediaManagementDialog(QDialog):
         reactions = []
         values = []
 
-        for pattern, lb in all_components.items():
+        for pattern, value in all_components.items():
             if pattern in model.reactions:
                 rxn = model.reactions.get_by_id(pattern)
-                ub = rxn.upper_bound if lb < 0 else 1000  # Keep upper bound for uptake reactions
+                if value < 0:
+                    # Negative value = uptake: use it as the lower bound, keep upper bound
+                    new_lb = value
+                    new_ub = rxn.upper_bound
+                else:
+                    # Positive value = allowed secretion/production: use it as the upper
+                    # bound and keep the existing (negative) lower bound, or 0 otherwise
+                    new_lb = rxn.lower_bound if rxn.lower_bound < 0 else 0
+                    new_ub = value
                 reactions.append(pattern)
-                values.append((lb, ub))
+                values.append((new_lb, new_ub))
                 applied_count += 1
 
         if reactions:

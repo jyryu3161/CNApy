@@ -335,7 +335,6 @@ class FluxFeasibilityDialog(QDialog):
                             )
                     scenario_fluxes = [self.appdata.project.comp_values[r] for r in reactions_in_objective]
                     if bm_is_modified and self.bm_mod_scenario.isChecked():
-                        fixed_growth_rate = self.appdata.project.scen_values[bm_reac_id][0]
                         self.appdata.scen_values_set_multiple(
                             reactions_in_objective + [bm_reac_id], scenario_fluxes + [(0, 0)]
                         )
@@ -343,6 +342,7 @@ class FluxFeasibilityDialog(QDialog):
                         self.appdata.scen_values_set_multiple(reactions_in_objective, scenario_fluxes)
                     self.modified_scenario = self.appdata.scenario_past[-1]
                 if bm_is_modified:
+                    fixed_growth_rate = self.appdata.project.scen_values[bm_reac_id][0]
                     bm_reac_mod = self.bm_reac.copy()
                     if len(bm_mod) > 0:
                         self.bm_constituents.setSortingEnabled(False)
@@ -534,6 +534,7 @@ class FluxFeasibilityDialog(QDialog):
         clipboard.setText("\r".join(table))
 
     def get_gam_removal_parameters(self, bm_reac: cobra.Reaction()):
+        gam_base = 0
         valid, gam_mets = self.validate_gam_mets([met.id for met in bm_reac.metabolites])
         if valid:
             valid, gam_base = self.validate_gam_remove(gam_mets)

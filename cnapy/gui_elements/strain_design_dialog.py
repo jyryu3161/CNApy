@@ -1514,6 +1514,7 @@ class SDDialog(QDialog):
         # remove all former regulatory constraints and refill again
         for _ in range(self.regulatory_itv_list.rowCount()):
             self.regulatory_itv_list.removeRow(0)
+        unknown_ids = []
         if sd_setup["advanced"]:
             self.set_none_r_koable()
             if REGCOST in sd_setup:
@@ -1530,11 +1531,17 @@ class SDDialog(QDialog):
                     self.regulatory_itv_list.setItem(i, 1, QTableItem(str(v)))
             if KOCOST in sd_setup:
                 for r, v in sd_setup[KOCOST].items():
+                    if r not in self.reaction_itv:
+                        unknown_ids.append(r)
+                        continue
                     self.reaction_itv[r]["button_group"].button(1).setChecked(True)
                     self.reaction_itv[r]["cost"].setText(str(v))
                     self.knock_changed(r, "reac")
             if KICOST in sd_setup:
                 for r, v in sd_setup[KICOST].items():
+                    if r not in self.reaction_itv:
+                        unknown_ids.append(r)
+                        continue
                     self.reaction_itv[r]["button_group"].button(3).setChecked(True)
                     self.reaction_itv[r]["cost"].setText(str(v))
                     self.knock_changed(r, "reac")
@@ -1544,21 +1551,41 @@ class SDDialog(QDialog):
                 if GKOCOST in sd_setup:
                     for k, v in sd_setup[GKOCOST].items():
                         if k not in self.gene_ids:
+                            if k not in self.gene_names:
+                                unknown_ids.append(k)
+                                continue
                             g = self.gene_ids[self.gene_names.index(k)]
                         else:
                             g = k
+                        if g not in self.gene_itv:
+                            unknown_ids.append(k)
+                            continue
                         self.gene_itv[g]["button_group"].button(1).setChecked(True)
                         self.gene_itv[g]["cost"].setText(str(v))
                         self.knock_changed(g, "gene")
                 if GKICOST in sd_setup:
                     for k, v in sd_setup[GKICOST].items():
                         if k not in self.gene_ids:
+                            if k not in self.gene_names:
+                                unknown_ids.append(k)
+                                continue
                             g = self.gene_ids[self.gene_names.index(k)]
                         else:
                             g = k
+                        if g not in self.gene_itv:
+                            unknown_ids.append(k)
+                            continue
                         self.gene_itv[g]["button_group"].button(3).setChecked(True)
                         self.gene_itv[g]["cost"].setText(str(v))
                         self.knock_changed(g, "gene")
+        if unknown_ids:
+            QMessageBox.information(
+                self,
+                "Unknown reaction/gene identifiers",
+                "The following reaction/gene identifiers from the strain design setup "
+                + "are not present in the current model and were skipped:\n\n"
+                + ", ".join(unknown_ids),
+            )
         self.compute_sd_button.setFocus()
 
     def compute(self):
@@ -1581,7 +1608,7 @@ class SDDialog(QDialog):
                 + "module list to ensure all modules were set up correctly.",
             )
             self.current_module = [i for i, m in enumerate(self.modules) if m is None][0]
-            self.module_edit()
+            self.edit_module()
             return
         bilvl_modules = [i for i, m in enumerate(self.modules) if m[MODULE_TYPE] in [OPTKNOCK, ROBUSTKNOCK, OPTCOUPLE]]
         sd_setup = self.parse_dialog_inputs()
@@ -1642,7 +1669,7 @@ class SDDialog(QDialog):
                     + "strain design setup.",
                 )
                 self.current_module = bilvl_modules[0]
-                self.module_edit()
+                self.edit_module()
                 return
             self.launch_computation_signal.emit(json.dumps(sd_setup))
             close_sd_dialog = True
@@ -1908,7 +1935,7 @@ class SDComputationThread(QThread):
                     )
 
                 sd_solutions = SDSolutions(model, [], ERROR, self.sd_setup)
-                self.finished_computation.emit(pickle.dumps(([], [], ERROR)))
+                self.finished_computation.emit(pickle.dumps(sd_solutions))
 
     def write(self, input):
         # avoid that other threads use this as an output

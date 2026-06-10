@@ -232,6 +232,12 @@ def run_dfba(
                     # Exchange reactions: negative flux = uptake
                     rxn.lower_bound = -uptake_rate
 
+            # Set the objective to the selected biomass reaction so that the
+            # growth rate reflects that reaction, regardless of the model's
+            # (or loaded scenario's) current objective.
+            if params.biomass_reaction in m.reactions:
+                m.objective = m.reactions.get_by_id(params.biomass_reaction)
+
             # Perform FBA
             try:
                 solution = m.optimize()
@@ -240,7 +246,9 @@ def run_dfba(
                     mu = 0
                     fluxes = {rid: 0 for rid in [params.biomass_reaction] + substrate_ids + product_ids}
                 else:
-                    mu = solution.objective_value
+                    # Growth rate is the flux through the selected biomass
+                    # reaction, not the raw objective value.
+                    mu = solution.fluxes[params.biomass_reaction]
                     fluxes = solution.fluxes
             except Exception:
                 mu = 0

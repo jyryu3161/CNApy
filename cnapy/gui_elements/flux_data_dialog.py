@@ -544,9 +544,6 @@ class FluxDataDialog(QDialog):
                     # Store as tuple for compatibility
                     self.appdata.project.comp_values[rxn_id] = (fc_val, fc_val)
 
-            # Enable modes coloring for log2FC visualization
-            self.appdata.modes_coloring = True
-
             self._update_visualization_log2fc(color_range)
             self.preview_text.setText(
                 f"Applied log2 fold change ({target_cond.name} / {ref_cond.name}) to {len(self.appdata.project.comp_values)} reactions."
@@ -568,6 +565,11 @@ class FluxDataDialog(QDialog):
         """Update map visualization with log2FC coloring."""
         # For log2FC, we use a custom coloring scheme
         # This will be handled by overriding the color computation temporarily
+
+        # log2FC gradient coloring is done entirely by the custom flux_value_display
+        # override below; modes_coloring must stay off so later normal flux displays
+        # are not corrupted by the binary mode-coloring scheme.
+        self.appdata.modes_coloring = False
 
         if self.central_widget:
             # Store original color computation

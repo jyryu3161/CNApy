@@ -745,6 +745,27 @@ class FVSEOFDialog(QDialog):
             self.stage_label.setText("Cancelling...")
             self.cancel_btn.setEnabled(False)
 
+    def _stop_worker_thread(self):
+        """Cancel and wait for the worker thread so it cannot outlive the dialog."""
+        if self.worker_thread and self.worker_thread.isRunning():
+            self.worker_thread.request_cancel()
+            self.worker_thread.wait()
+
+    def closeEvent(self, event):
+        """Stop the worker before the dialog is destroyed (window 'X')."""
+        self._stop_worker_thread()
+        super().closeEvent(event)
+
+    def accept(self):
+        """Join the worker thread before accepting (e.g. the Close button)."""
+        self._stop_worker_thread()
+        super().accept()
+
+    def reject(self):
+        """Join the worker thread before rejecting (e.g. the Escape key)."""
+        self._stop_worker_thread()
+        super().reject()
+
     @Slot(int, int, str)
     def _on_progress(self, current: int, total: int, message: str):
         """Update progress bar and detail message."""
@@ -814,6 +835,10 @@ class FVSEOFDialog(QDialog):
             and r["max_p"] < p_cutoff
         ]
         down_candidates.sort(key=lambda x: x["avg_r"])
+
+        # Persist candidate lists so exporters can reuse them
+        self.last_results["up_candidates"] = up_candidates
+        self.last_results["down_candidates"] = down_candidates
 
         # Populate up-regulation table
         self.up_table.setRowCount(len(up_candidates))

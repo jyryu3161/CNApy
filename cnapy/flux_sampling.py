@@ -118,6 +118,11 @@ def perform_predicted_flux_sampling(
                 if rid in m.reactions:
                     rxn = m.reactions.get_by_id(rid)
 
+                    # Keep the reaction's original feasible bounds so the
+                    # constrained window can never be relaxed outside them.
+                    orig_lb = rxn.lower_bound
+                    orig_ub = rxn.upper_bound
+
                     if abs(flux) < 1e-6:
                         # Near-zero flux: constrain to small range around zero
                         new_lb = max(rxn.lower_bound, -0.1)
@@ -131,9 +136,19 @@ def perform_predicted_flux_sampling(
                             new_lb = max(rxn.lower_bound, flux * max_fraction)  # Note: reversed for negative
                             new_ub = min(rxn.upper_bound, flux * min_fraction)
 
-                    # Ensure valid bounds
+                    # An empty intersection (new_lb > new_ub) means the
+                    # requested window does not overlap the reaction's
+                    # existing bounds. Swapping the values would advertise
+                    # (and sample over) a range outside the model's own
+                    # feasible bounds, silently relaxing a hard constraint.
+                    # Instead, clamp the window into [orig_lb, orig_ub] so
+                    # the applied bounds always stay within the model's
+                    # original feasible range.
                     if new_lb > new_ub:
-                        new_lb, new_ub = new_ub, new_lb
+                        new_lb = min(max(new_lb, orig_lb), orig_ub)
+                        new_ub = max(min(new_ub, orig_ub), orig_lb)
+                        if new_lb > new_ub:
+                            new_lb, new_ub = new_ub, new_lb
 
                     rxn.lower_bound = new_lb
                     rxn.upper_bound = new_ub

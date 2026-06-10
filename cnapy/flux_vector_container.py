@@ -19,8 +19,11 @@ class FluxVectorContainer:
                     "File could not be opened as it does not seem to be a valid EFM file. "
                     "Maybe the file got the .npz ending for other reasons than being a scenario file or the file is corrupted.",
                 )
+                # leave the object in a valid empty state so callers do not
+                # crash with AttributeError on a half-constructed instance
+                self.clear()
                 return
-            if self.fv_mat.dtype == numpy.object:  # in this case assume fv_mat is scipy.sparse
+            if self.fv_mat.dtype == object:  # in this case assume fv_mat is scipy.sparse
                 self.fv_mat = self.fv_mat.tolist()  # not sure why this works...
             self.reac_id = l["reac_id"].tolist()
             self.irreversible = l["irreversible"]

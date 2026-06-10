@@ -167,6 +167,7 @@ class FSEOFWorkerThread(QThread):
 
             # Restore original objective for scanning
             model.objective = obj_rxn
+            model.objective_direction = "max"
 
             for idx, target_flux in enumerate(scan_points):
                 if self._cancel_requested:
@@ -682,6 +683,27 @@ class FSEOFDialog(QDialog):
         self.compute_btn.setEnabled(True)
         self.cancel_btn.setEnabled(False)
         self.progress_bar.setVisible(False)
+
+    def _stop_worker_thread(self):
+        """Cancel and wait for the worker thread so it cannot outlive the dialog."""
+        if self.worker_thread is not None and self.worker_thread.isRunning():
+            self.worker_thread.request_cancel()
+            self.worker_thread.wait()
+
+    def closeEvent(self, event):
+        """Stop the worker before the dialog is destroyed (window 'X')."""
+        self._stop_worker_thread()
+        super().closeEvent(event)
+
+    def accept(self):
+        """Join the worker thread before accepting (e.g. the Close button)."""
+        self._stop_worker_thread()
+        super().accept()
+
+    def reject(self):
+        """Join the worker thread before rejecting (e.g. the Escape key)."""
+        self._stop_worker_thread()
+        super().reject()
 
     @Slot()
     def _export_csv(self):

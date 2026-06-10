@@ -761,7 +761,7 @@ class ScenarioTemplatesDialog(QDialog):
         model = self.appdata.project.cobra_py_model
 
         if not self.merge_checkbox.isChecked():
-            self.appdata.project.scen_values.clear_flux_values()
+            self.appdata.scen_values_clear()
 
         applied_count = 0
 
@@ -834,7 +834,7 @@ class ScenarioTemplatesDialog(QDialog):
             return
 
         if not self.knockout_merge_cb.isChecked():
-            self.appdata.project.scen_values.clear_flux_values()
+            self.appdata.scen_values_clear()
 
         reactions = []
         values = []
@@ -925,7 +925,7 @@ class ScenarioTemplatesDialog(QDialog):
         bm = current.data(Qt.UserRole)
         scenario = bm.get("scenario", {})
 
-        self.appdata.project.scen_values.clear_flux_values()
+        self.appdata.scen_values_clear()
 
         reactions = []
         values = []
@@ -1017,7 +1017,7 @@ class ScenarioTemplatesDialog(QDialog):
             QMessageBox.warning(self, "No Reactions", "Please add reactions to the custom template.")
             return
 
-        self.appdata.project.scen_values.clear_flux_values()
+        self.appdata.scen_values_clear()
 
         reactions = []
         values = []

@@ -32,7 +32,7 @@ def efm_computation(
     stdf = create_stoichiometric_matrix(model, array_type="DataFrame")
     reversible, irrev_backwards_idx = efmtool4cobra.get_reversibility(model)
     if len(irrev_backwards_idx) > 0:
-        irrev_back = numpy.zeros(len(reversible), dtype=numpy.bool)
+        irrev_back = numpy.zeros(len(reversible), dtype=bool)
         irrev_back[irrev_backwards_idx] = True
     scenario = {}
     if constraints:

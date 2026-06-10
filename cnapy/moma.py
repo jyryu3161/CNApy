@@ -183,8 +183,18 @@ def room(
                 w_lower = w - delta * abs(w)
 
             # Big-M values
-            M_upper = max(abs(ub - w_upper), 1000) if ub is not None else 2000
-            M_lower = max(abs(w_lower - lb), 1000) if lb is not None else 2000
+            # Cap the Big-M at a finite value when bounds are large or infinite
+            # (e.g. exchange reactions with +/-inf bounds), mirroring the
+            # reference implementation in test_data/Simulator.py. An infinite
+            # coefficient would otherwise be rejected/mis-scaled by the backend.
+            if ub is not None and ub < 1000:
+                M_upper = max(abs(ub - w_upper), 1000)
+            else:
+                M_upper = 2000
+            if lb is not None and lb > -1000:
+                M_lower = max(abs(w_lower - lb), 1000)
+            else:
+                M_lower = 2000
 
             # Constraints using Big-M formulation:
             # v <= w_upper + M_upper * y  (when y=0: v <= w_upper)

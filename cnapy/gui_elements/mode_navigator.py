@@ -266,7 +266,7 @@ class ModeNavigator(QWidget):
             self.central_widget.update()
 
     def select_all(self):
-        self.selection = numpy.ones(len(self.appdata.project.modes), dtype=numpy.bool)
+        self.selection = numpy.ones(len(self.appdata.project.modes), dtype=bool)
         self.num_selected = len(self.appdata.project.modes)
         self.selector.setText("")
 
@@ -325,13 +325,13 @@ class ModeNavigator(QWidget):
                 for r in must_occur:
                     for i, selected in enumerate(self.selection):
                         s = self.appdata.project.modes[i]
-                        if selected and r not in s or numpy.any(numpy.isnan(s[r])) or numpy.all(s[r] == 0):
+                        if selected and (r not in s or numpy.any(numpy.isnan(s[r])) or numpy.all(s[r] == 0)):
                             self.selection[i] = False
             if must_not_occur is not None:
                 for r in must_not_occur:
                     for i, selected in enumerate(self.selection):
                         s = self.appdata.project.modes[i]
-                        if selected and r in s and not numpy.any(numpy.isnan(s[r])) or numpy.all(s[r] == 0):
+                        if selected and r in s and not numpy.any(numpy.isnan(s[r])) and not numpy.all(s[r] == 0):
                             self.selection[i] = False
             if self.appdata.window.sd_sols and self.appdata.window.sd_sols.__weakref__:  # if dialog exists
                 for i in range(self.appdata.window.sd_sols.sd_table.rowCount()):

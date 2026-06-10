@@ -69,8 +69,7 @@ class BoxPositionDialog(QDialog):
             msgBox.exec()
             return
 
-        self.map.appdata.project.maps[self.map.name]["boxes"][self.reaction_box.id][0] = x_float
-        self.map.appdata.project.maps[self.map.name]["boxes"][self.reaction_box.id][1] = y_float
+        self.map.appdata.project.maps[self.map.name]["boxes"][self.reaction_box.id] = (x_float, y_float)
         self.map.update_reaction(self.reaction_box.id, self.reaction_box.id)
         self.map.central_widget.parent.unsaved_changes()
         self.accept()

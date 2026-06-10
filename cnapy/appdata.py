@@ -222,13 +222,13 @@ class AppData(QObject):
                 h = 255
             else:
                 h = round(mean * 255 / high)
-            return QColor.fromRgbF(255 - h, 255, 255 - h)
+            return QColor.fromRgb(255 - h, 255, 255 - h)
         else:
             if low == 0.0:
                 h = 255
             else:
                 h = round(mean * 255 / low)
-            return QColor.fromRgbF(255, 255 - h, 255 - h)
+            return QColor.fromRgb(255, 255 - h, 255 - h)
 
     def low_and_high(self) -> tuple[int, int]:
         low = 0

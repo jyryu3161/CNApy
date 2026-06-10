@@ -217,6 +217,10 @@ class ThermodynamicDialog(QDialog):
             extra_linear_constraints: list[ExtraLinearConstraint] = []
             for constraint in self.appdata.project.scen_values.constraints:
                 # e.g., [({'EDD': 1.0}, '>=', 1.0)]
+                # Skip empty/placeholder constraints (e.g. (None, "", "")) that
+                # are appended for rows incompatible with the current model.
+                if constraint[0] is None or constraint[1] == "":
+                    continue
                 extra_linear_constraint = ExtraLinearConstraint(
                     stoichiometries={key: value for key, value in constraint[0].items()},
                 )

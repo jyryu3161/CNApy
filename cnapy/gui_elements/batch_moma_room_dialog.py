@@ -127,6 +127,15 @@ class BatchMomaRoomWorkerThread(QThread):
                 if not self.comp_values:
                     self.error_occurred.emit("No computed flux data available in Map.")
                     return
+                # Only simple flux-vector results are valid reference fluxes.
+                # FVA / 'show model bounds' results store (lower_bound, upper_bound)
+                # tuples (comp_values_type == 1), where vals[0] is a bound, not a flux.
+                if self.appdata and self.appdata.project and self.appdata.project.comp_values_type != 0:
+                    self.error_occurred.emit(
+                        "Current Map holds FVA / model-bounds results, not a flux distribution. "
+                        "Use FBA or pFBA as the template flux instead."
+                    )
+                    return
                 # Extract flux values from comp_values (tuple of (value, precision))
                 reference_fluxes = {rid: vals[0] for rid, vals in self.comp_values.items()}
 
@@ -568,14 +577,23 @@ class BatchMomaRoomDialog(QDialog):
     def _update_template_availability(self):
         """Update 'Current Map' option based on comp_values availability."""
         has_comp_values = bool(self.appdata.project.comp_values)
+        # FVA / 'show model bounds' results (comp_values_type == 1) store
+        # (lower_bound, upper_bound) tuples, which are not valid reference fluxes.
+        is_flux_vector = self.appdata.project.comp_values_type == 0
 
         model = self.template_selector.model()
         item = model.item(0)  # "Current Map" is index 0
 
-        if has_comp_values:
+        if has_comp_values and is_flux_vector:
             item.setEnabled(True)
             n_reactions = len(self.appdata.project.comp_values)
             item.setText(f"Current Map ({n_reactions} reactions)")
+        elif has_comp_values and not is_flux_vector:
+            item.setEnabled(False)
+            item.setText("Current Map (FVA/bounds result - not a flux distribution)")
+            # Auto-select FBA if Current Map unavailable and it was selected
+            if self.template_selector.currentIndex() == 0:
+                self.template_selector.setCurrentIndex(1)
         else:
             item.setEnabled(False)
             item.setText("Current Map (no data - run FBA/pFBA/LAD/E-Flux2 first)")
@@ -587,6 +605,27 @@ class BatchMomaRoomDialog(QDialog):
         """Update template availability when dialog is shown."""
         super().showEvent(event)
         self._update_template_availability()
+
+    def _stop_worker_thread(self):
+        """Cancel and wait for the worker thread so it cannot outlive the dialog."""
+        if self.worker_thread and self.worker_thread.isRunning():
+            self.worker_thread.request_cancel()
+            self.worker_thread.wait()
+
+    def closeEvent(self, event):
+        """Stop and wait for the worker thread before the dialog is destroyed."""
+        self._stop_worker_thread()
+        super().closeEvent(event)
+
+    def accept(self):
+        """Join the worker thread before accepting (e.g. the Close button)."""
+        self._stop_worker_thread()
+        super().accept()
+
+    def reject(self):
+        """Join the worker thread before rejecting (e.g. Escape / window close)."""
+        self._stop_worker_thread()
+        super().reject()
 
     def _populate_biomass_selector(self):
         """Populate the biomass reaction selector."""

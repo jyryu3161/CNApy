@@ -40,10 +40,7 @@ class GeneList(QWidget):
 
         for m in self.appdata.project.cobra_py_model.genes:
             self.add_gene(m)
-        self.gene_list.setContextMenuPolicy(Qt.CustomContextMenu)
-        self.gene_list.customContextMenuRequested.connect(self.on_context_menu)
 
-        # create context menu
         self.gene_mask = GenesMask(self, self.appdata)
         self.gene_mask.hide()
 
@@ -71,10 +68,6 @@ class GeneList(QWidget):
         item.setText(0, gene.id)
         item.setText(1, gene.name)
         item.setData(2, 0, gene)
-
-    def on_context_menu(self, point):
-        if len(self.appdata.project.cobra_py_model.genes) > 0:
-            self.pop_menu.exec_(self.mapToGlobal(point))
 
     def handle_changed_gene(self, gene: cobra.Gene):
         # Update gene item in list

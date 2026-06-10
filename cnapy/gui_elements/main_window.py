@@ -37,7 +37,7 @@ except ImportError:
             pass
 
     flux_variability_analysis = None
-from typing import Any
+from typing import Any, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -3068,7 +3068,7 @@ class MainWindow(QMainWindow):
 
     def _load_concentrations_json(self, replace_all):
         concentrations = self._load_json()
-        self._set_concentrations(concentrations)
+        self._set_concentrations(concentrations, replace_all)
 
     def load_concentrations_json_amend(self, replace_all):
         self._load_concentrations_json(False)
@@ -3132,7 +3132,7 @@ class MainWindow(QMainWindow):
                 "Warnings occured while loading XLSX",
                 f"The following warnings occured while loading the XLSX:\n{warnings}",
             )
-        self._set_concentrations(concentrations)
+        self._set_concentrations(concentrations, replace_all)
 
     def load_concentrations_xlsx_amend(self):
         self._load_concentrations_xlsx(False)
@@ -3207,7 +3207,7 @@ class MainWindow(QMainWindow):
     def load_dG0_xlsx_replace_all(self):
         self._load_dG0_xlsx(True)
 
-    def _get_filename(self, filetype: str) -> str:
+    def _get_filename(self, filetype: str) -> Optional[str]:
         dialog = QFileDialog(self)
         filename: str = dialog.getSaveFileName(directory=self.appdata.work_directory, filter=f"*.{filetype}")[0]
         if not filename or len(filename) == 0:
@@ -3218,6 +3218,8 @@ class MainWindow(QMainWindow):
 
     def _save_fluxes(self, filetype: str):
         filename = self._get_filename(filetype)
+        if filename is None:
+            return
 
         table = self.central_widget.reaction_list.get_as_table()
 

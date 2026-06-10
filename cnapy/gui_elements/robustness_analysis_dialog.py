@@ -278,7 +278,7 @@ class RobustnessAnalysisDialog(QDialog):
         min_row = QHBoxLayout()
         min_row.addWidget(QLabel("Min flux:"))
         self.min_spin = no_scroll(QDoubleSpinBox())
-        self.min_spin.setRange(-1000, 1000)
+        self.min_spin.setRange(-1e7, 1e7)
         self.min_spin.setValue(-10)
         self.min_spin.setDecimals(3)
         self.min_spin.setToolTip(
@@ -293,7 +293,7 @@ class RobustnessAnalysisDialog(QDialog):
         max_row = QHBoxLayout()
         max_row.addWidget(QLabel("Max flux:"))
         self.max_spin = no_scroll(QDoubleSpinBox())
-        self.max_spin.setRange(-1000, 1000)
+        self.max_spin.setRange(-1e7, 1e7)
         self.max_spin.setValue(0)
         self.max_spin.setDecimals(3)
         self.max_spin.setToolTip("Maximum value of the flux range to analyze.\n" "Must be greater than Min.")
@@ -492,6 +492,14 @@ class RobustnessAnalysisDialog(QDialog):
                     lb = scen_lb
                 if scen_ub is not None:
                     ub = scen_ub
+
+            # Replace non-finite bounds with the spinbox limits so an
+            # effectively-unbounded reaction (e.g. +/-inf) is not silently
+            # clamped to a misleading value.
+            if not np.isfinite(lb):
+                lb = self.min_spin.minimum() if lb < 0 else self.min_spin.maximum()
+            if not np.isfinite(ub):
+                ub = self.max_spin.minimum() if ub < 0 else self.max_spin.maximum()
 
             self.min_spin.setValue(lb)
             self.max_spin.setValue(ub)

@@ -129,13 +129,10 @@ class CplexConfigurationDialog(QDialog):
                 )
                 python_exe_path = sys.executable
                 python_dir = os.path.dirname(python_exe_path)
-                python_exe_name = os.path.split(python_exe_path)[-1]
-                command = (
-                    f'cd "{python_dir}" && {python_exe_name} "{self.cplex_directory.text()}python/setup.py" install'
-                )
-                has_run_error = subprocess.check_call(
-                    command, shell=True
-                )  # The " are introduces in order to handle paths with blank spaces
+                # Pass the command as an argument list (no shell) so a directory
+                # path containing spaces or shell metacharacters is handled safely.
+                command = [python_exe_path, f"{self.cplex_directory.text()}python/setup.py", "install"]
+                has_run_error = subprocess.check_call(command, cwd=python_dir)
             except subprocess.CalledProcessError:
                 has_run_error = True
             if has_run_error:

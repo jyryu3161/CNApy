@@ -183,16 +183,53 @@ def parse_gpr_to_isozyme_sets(gpr: str) -> list[list[str]]:
     if depth != 0:
         raise GprParseError(gpr, "unbalanced parenthesis")
 
-    or_parts = _split_top_level(gpr, _OR_PATTERN)
+    # Recursively distribute to disjunctive normal form (DNF) so that nested
+    # OR groups inside an AND complex — e.g. "(g1 or g2) and g3" — are fully
+    # expanded into separate isozyme sets [['g1', 'g3'], ['g2', 'g3']] rather
+    # than left as a single set containing the literal token "(g1 or g2)".
+    isozymes = _expand_to_dnf(gpr)
 
     result: list[list[str]] = []
-    for part in or_parts:
-        stripped = _strip_outer_parens(part.strip())
-        and_parts = _split_top_level(stripped, _AND_PATTERN)
-        genes = [g.strip() for g in and_parts if g.strip()]
+    for gene_set in isozymes:
+        genes = [g for g in gene_set if g]
         if genes:
             result.append(genes)
     return result
+
+
+def _expand_to_dnf(text: str) -> list[list[str]]:
+    """Recursively expand a GPR fragment to disjunctive normal form.
+
+    Returns a list of isozyme sets (each an AND-list of gene tokens). An
+    ``OR`` produces the union of its operands' alternatives; an ``AND``
+    produces the Cartesian product of its operands' alternatives so that any
+    nested OR group is distributed over the surrounding complex.
+    """
+    text = _strip_outer_parens(text.strip())
+    if not text:
+        return []
+
+    or_parts = _split_top_level(text, _OR_PATTERN)
+    if len(or_parts) > 1:
+        alternatives: list[list[str]] = []
+        for part in or_parts:
+            alternatives.extend(_expand_to_dnf(part))
+        return alternatives
+
+    and_parts = _split_top_level(text, _AND_PATTERN)
+    if len(and_parts) > 1:
+        # Cartesian product of each AND operand's alternatives.
+        product: list[list[str]] = [[]]
+        for part in and_parts:
+            sub_alts = _expand_to_dnf(part)
+            if not sub_alts:
+                continue
+            product = [combo + alt for combo in product for alt in sub_alts]
+        return [combo for combo in product if combo]
+
+    # Single leaf token (a gene id), possibly wrapped in redundant parens.
+    leaf = _strip_outer_parens(text.strip()).strip()
+    return [[leaf]] if leaf else []
 
 
 def _split_top_level(text: str, sep_pattern: re.Pattern) -> list[str]:

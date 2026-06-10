@@ -125,6 +125,9 @@ def _reaction_to_omap(rxn: cobra.Reaction) -> OrderedDict:
         ("upper_bound", _as_number(rxn.upper_bound)),
         ("gene_reaction_rule", rxn.gene_reaction_rule or ""),
     ]
+    if rxn.objective_coefficient:
+        pairs.append(("objective_coefficient",
+                      _as_number(rxn.objective_coefficient)))
     if rxn.subsystem:
         pairs.append(("subsystem", rxn.subsystem))
     if rxn.annotation:
@@ -353,6 +356,10 @@ def load_ecmodel(path: str | Path) -> tuple[cobra.Model, ECModelData]:
         annotation = r.get("annotation")
         if isinstance(annotation, dict):
             rxn.annotation.update(annotation)
+
+        objective_coefficient = _as_float(r.get("objective_coefficient", 0.0))
+        if objective_coefficient:
+            rxn.objective_coefficient = objective_coefficient
 
     # ── rebuild ECModelData ────────────────────────────────────────────────
     # gecko3-yaml-import FR-2/FR-3: detect ecModel status from the document.

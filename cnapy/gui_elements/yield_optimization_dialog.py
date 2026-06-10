@@ -149,7 +149,7 @@ class YieldOptimizationDialog(QDialog):
                 QMessageBox.information(
                     self,
                     "Solution",
-                    "Maximum yield ("
+                    sense + " yield ("
                     + linexprdict2str(linexpr2dict(self.numerator.text(), self.reac_ids))
                     + ") / ("
                     + linexprdict2str(linexpr2dict(self.denominator.text(), self.reac_ids))
